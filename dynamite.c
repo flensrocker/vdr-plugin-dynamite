@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5d-rc1";
+static const char *VERSION        = "0.0.5d";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -275,7 +275,9 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "ADUM subsystem begin-of-devnode\n"
     "    Adds a filter to the udev-monitor.\n"
     "    If an event occurs whose devnode starts with the supplied parameter\n"
-    "    this devnode will be queued for attaching.\n"
+    "    this devnode will be queued for attaching, e.g.\n"
+    "    AddUdevMonitor video4linux /dev/video\n"
+    "    (this is what pvrinput uses)\n"
     "    alternate command: AddUdevMonitor",
     NULL
     };

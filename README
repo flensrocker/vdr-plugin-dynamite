@@ -128,6 +128,15 @@ SDGT seconds
     and all devices that will be attached.
     alternate command: SetDefaultGetTSTimeout
 
+"dynamite-AddUdevMonitor-v0.1"
+ADUM subsystem begin-of-devnode
+    Adds a filter to the udev-monitor.
+    If an event occurs whose devnode starts with the supplied parameter
+    this devnode will be queued for attaching, e.g.
+    AddUdevMonitor video4linux /dev/video
+    (this is what pvrinput uses)
+    alternate command: AddUdevMonitor
+
 Don't forget to prefix them with "plug dynamite"...
 
 Parameters in setup.conf
