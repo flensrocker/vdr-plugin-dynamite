@@ -1,8 +1,8 @@
 diff --git a/device.c b/device.c
-index 681049b..aaee92f 100644
+index 681049b..c758390 100644
 --- a/device.c
 +++ b/device.c
-@@ -72,12 +72,18 @@ cDevice *cDevice::device[MAXDEVICES] = { NULL };
+@@ -72,12 +72,21 @@ cDevice *cDevice::device[MAXDEVICES] = { NULL };
  cDevice *cDevice::primaryDevice = NULL;
  cDevice *cDevice::avoidDevice = NULL;
  cList<cDeviceHook> cDevice::deviceHooks;
@@ -11,19 +11,24 @@ index 681049b..aaee92f 100644
 -cDevice::cDevice(void)
 +cDevice::cDevice(cDevice *ParentDevice)
  :patPmtParser(true)
+-{
+-  cardIndex = nextCardIndex++;
+-  dsyslog("new device number %d", CardIndex() + 1);
 +,parentDevice(ParentDevice)
 +,subDevice(NULL)
- {
++{
 +  if (!ParentDevice)
 +     parentDevice = nextParentDevice;
 +  cDevice::nextParentDevice = NULL;
-   cardIndex = nextCardIndex++;
--  dsyslog("new device number %d", CardIndex() + 1);
++  if (parentDevice)
++     cardIndex = parentDevice->cardIndex;
++  else
++     cardIndex = nextCardIndex++;
 +  dsyslog("new %sdevice number %d", parentDevice ? "sub-" : "", CardIndex() + 1);
  
    SetDescription("receiver on device %d", CardIndex() + 1);
  
-@@ -108,10 +114,14 @@ cDevice::cDevice(void)
+@@ -108,10 +117,14 @@ cDevice::cDevice(void)
    for (int i = 0; i < MAXRECEIVERS; i++)
        receiver[i] = NULL;
  
@@ -41,7 +46,7 @@ index 681049b..aaee92f 100644
  }
  
  cDevice::~cDevice()
-@@ -120,6 +130,8 @@ cDevice::~cDevice()
+@@ -120,6 +133,8 @@ cDevice::~cDevice()
    DetachAllReceivers();
    delete liveSubtitle;
    delete dvbSubtitleConverter;
@@ -50,7 +55,7 @@ index 681049b..aaee92f 100644
  }
  
  bool cDevice::WaitForAllDevicesReady(int Timeout)
-@@ -158,6 +170,8 @@ int cDevice::NextCardIndex(int n)
+@@ -158,6 +173,8 @@ int cDevice::NextCardIndex(int n)
  
  int cDevice::DeviceNumber(void) const
  {
@@ -59,7 +64,7 @@ index 681049b..aaee92f 100644
    for (int i = 0; i < numDevices; i++) {
        if (device[i] == this)
           return i;
-@@ -328,6 +342,10 @@ bool cDevice::HasCi(void)
+@@ -328,6 +345,10 @@ bool cDevice::HasCi(void)
  
  void cDevice::SetCamSlot(cCamSlot *CamSlot)
  {
@@ -70,7 +75,7 @@ index 681049b..aaee92f 100644
    camSlot = CamSlot;
  }
  
-@@ -531,6 +549,10 @@ bool cDevice::SetPid(cPidHandle *Handle, int Type, bool On)
+@@ -531,6 +552,10 @@ bool cDevice::SetPid(cPidHandle *Handle, int Type, bool On)
  
  void cDevice::StartSectionHandler(void)
  {
@@ -81,7 +86,7 @@ index 681049b..aaee92f 100644
    if (!sectionHandler) {
       sectionHandler = new cSectionHandler(this);
       AttachFilter(eitFilter = new cEitFilter);
-@@ -542,6 +564,10 @@ void cDevice::StartSectionHandler(void)
+@@ -542,6 +567,10 @@ void cDevice::StartSectionHandler(void)
  
  void cDevice::StopSectionHandler(void)
  {
@@ -92,7 +97,7 @@ index 681049b..aaee92f 100644
    if (sectionHandler) {
       delete nitFilter;
       delete sdtFilter;
-@@ -568,12 +594,20 @@ void cDevice::CloseFilter(int Handle)
+@@ -568,12 +597,20 @@ void cDevice::CloseFilter(int Handle)
  
  void cDevice::AttachFilter(cFilter *Filter)
  {
@@ -113,7 +118,16 @@ index 681049b..aaee92f 100644
    if (sectionHandler)
       sectionHandler->Detach(Filter);
  }
-@@ -1690,3 +1724,25 @@ uchar *cTSBuffer::Get(void)
+@@ -1461,6 +1498,8 @@ bool cDevice::Ready(void)
+ 
+ bool cDevice::Receiving(bool CheckAny) const
+ {
++  if (parentDevice)
++     return parentDevice->Receiving(CheckAny);
+   for (int i = 0; i < MAXRECEIVERS; i++) {
+       if (receiver[i] && (CheckAny || receiver[i]->priority >= 0)) // cReceiver with priority < 0 doesn't count
+          return true;
+@@ -1690,3 +1729,25 @@ uchar *cTSBuffer::Get(void)
       }
    return NULL;
  }
@@ -140,7 +154,7 @@ index 681049b..aaee92f 100644
 +  DynamicDeviceProbes.Del(this, false);
 +}
 diff --git a/device.h b/device.h
-index cb3bc2c..0b6634b 100644
+index cb3bc2c..8364e73 100644
 --- a/device.h
 +++ b/device.h
 @@ -163,7 +163,6 @@ private:
@@ -151,16 +165,17 @@ index cb3bc2c..0b6634b 100644
    virtual ~cDevice();
    virtual bool Ready(void);
           ///< Returns true if this device is ready. Devices with conditional
-@@ -191,8 +190,6 @@ protected:
+@@ -190,9 +189,6 @@ protected:
+          ///< A derived class must call the MakePrimaryDevice() function of its
           ///< base class.
  public:
-   bool IsPrimaryDevice(void) const { return this == primaryDevice; }
+-  bool IsPrimaryDevice(void) const { return this == primaryDevice; }
 -  int CardIndex(void) const { return cardIndex; }
 -         ///< Returns the card index of this device (0 ... MAXDEVICES - 1).
    int DeviceNumber(void) const;
           ///< Returns the number of this device (0 ... numDevices).
    virtual bool HasDecoder(void) const;
-@@ -365,9 +362,6 @@ public:
+@@ -365,9 +361,6 @@ public:
           ///< Returns true if this device has a Common Interface.
    void SetCamSlot(cCamSlot *CamSlot);
           ///< Sets the given CamSlot to be used with this device.
@@ -170,7 +185,7 @@ index cb3bc2c..0b6634b 100644
  
  // Image Grab facilities
  
-@@ -524,9 +518,6 @@ private:
+@@ -524,9 +517,6 @@ private:
    cTsToPes tsToPesSubtitle;
    bool isPlayingVideo;
  protected:
@@ -180,7 +195,7 @@ index cb3bc2c..0b6634b 100644
    virtual bool CanReplay(void) const;
         ///< Returns true if this device can currently start a replay session.
    virtual bool SetPlayMode(ePlayMode PlayMode);
-@@ -712,6 +703,30 @@ public:
+@@ -712,6 +702,31 @@ public:
         ///< Detaches all receivers from this device for this pid.
    void DetachAllReceivers(void);
         ///< Detaches all receivers from this device.
@@ -199,6 +214,7 @@ index cb3bc2c..0b6634b 100644
 +       ///< Returns a pointer to the patPmtParser, so that a derived device
 +       ///< can use the stream information from it.
 +public:
++  bool IsPrimaryDevice(void) const { if (parentDevice) return parentDevice->IsPrimaryDevice(); return this == primaryDevice; }
 +  int CardIndex(void) const { if (parentDevice) return parentDevice->cardIndex; return cardIndex; }
 +         ///< Returns the card index of this device (0 ... MAXDEVICES - 1).
 +  cCamSlot *CamSlot(void) const { if (parentDevice) return parentDevice->CamSlot(); return camSlot; }

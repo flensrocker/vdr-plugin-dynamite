@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5d";
+static const char *VERSION        = "0.0.5e";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 

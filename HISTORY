@@ -70,3 +70,11 @@ VDR Plugin 'dynamite' Revision History
 2011-01-30: Version 0.0.5c
 
 - correct LDFLAGS in Makefile
+
+2011-02-02: Version 0.0.5d
+
+- add generic udev-filter for other plugins
+
+2011-02-03: Version 0.0.5e
+
+- rework vdr-patch to avoid problems with EITScanner (no ABI changes)
