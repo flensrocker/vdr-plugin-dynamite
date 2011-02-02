@@ -218,3 +218,55 @@ void cUdevDvbFilter::Process(cUdevDevice &Device)
      cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, devname);
      }
 }
+
+// --- cUdevPatternFilter ----------------------------------------------------
+
+cMutex   cUdevPatternFilter::filtersMutex;
+cList<cUdevPatternFilter> cUdevPatternFilter::filters;
+
+bool cUdevPatternFilter::AddFilter(const char *Subsystem, const char *Pattern)
+{
+  if (Pattern == NULL)
+     return false;
+  cMutexLock lock(&filtersMutex);
+  cUdevPatternFilter *f = filters.First();
+  while (f) {
+        if (f->monitor && (strcmp(*f->pattern, Pattern) == 0)) {
+           if ((Subsystem == NULL) && (*f->monitor->GetSubsystem() == NULL))
+              return true;
+           if ((Subsystem != NULL)
+               && (*f->monitor->GetSubsystem() != NULL)
+               && (strcmp(*f->monitor->GetSubsystem(), Subsystem) == 0))
+              return true;
+           }
+        f = filters.Next(f);
+        }
+  return cUdevMonitor::AddFilter(Subsystem, new cUdevPatternFilter(Pattern));
+}
+
+cUdevPatternFilter::cUdevPatternFilter(const char *Pattern)
+:pattern(Pattern)
+{
+  cMutexLock lock(&filtersMutex);
+  filters.Add(this);
+}
+
+cUdevPatternFilter::~cUdevPatternFilter(void)
+{
+  cMutexLock lock(&filtersMutex);
+  filters.Del(this, false);
+}
+
+void cUdevPatternFilter::Process(cUdevDevice &Device)
+{
+  const char *action = Device.GetAction();
+  if (action && (strcmp(action, "add") == 0)) {
+     const char *devname = Device.GetDevnode();
+     if (devname != NULL) {
+        int dLen = strlen(devname);
+        int pLen = strlen(*pattern);
+        if ((pLen <= dLen) && (strncmp(devname, *pattern, pLen) == 0))
+           cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, devname);
+        }
+     }
+}

@@ -54,5 +54,19 @@ class cUdevDvbFilter : public cUdevFilter {
 protected:
   virtual void Process(cUdevDevice &Device);
   };
-  
+
+class cUdevPatternFilter : public cUdevFilter {
+public:
+  static bool AddFilter(const char *Subsystem, const char *Pattern);
+protected:
+  static cMutex   filtersMutex;
+  static cList<cUdevPatternFilter> filters;
+
+  virtual ~cUdevPatternFilter(void);
+  virtual void Process(cUdevDevice &Device);
+private:
+  cUdevPatternFilter(const char *Pattern);
+  cString pattern;
+  };
+
 #endif // __DYNAMITEMONITOR_H

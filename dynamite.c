@@ -219,6 +219,13 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
         }
      return true;
      }
+  if (strcmp(Id, "dynamite-AddUdevMonitor-v0.1") == 0) {
+     if (Data != NULL) {
+        int replyCode;
+        SVDRPCommand("AddUdevMonitor", (const char*)Data, replyCode);
+        }
+     return true;
+     }
   return false;
 }
 
@@ -265,6 +272,11 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "    Sets the \"GetTSPacket\"-watchdog timeout for all attached devices\n"
     "    and all devices that will be attached.\n"
     "    alternate command: SetDefaultGetTSTimeout",
+    "ADUM subsystem begin-of-devnode\n"
+    "    Adds a filter to the udev-monitor.\n"
+    "    If an event occurs whose devnode starts with the supplied parameter\n"
+    "    this devnode will be queued for attaching.\n"
+    "    alternate command: AddUdevMonitor",
     NULL
     };
   return HelpPages;
@@ -333,6 +345,26 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
         int seconds = strtol(Option, NULL, 10);
         cDynamicDevice::SetDefaultGetTSTimeout(seconds);
         return cString::sprintf("set default GetTS-Timeout on all devices to %d seconds", seconds);
+        }
+     }
+
+  if ((strcasecmp(Command, "AUDM") == 0) || (strcasecmp(Command, "AddUdevMonitor") == 0)) {
+     int maxlen = strlen(Option);
+     if (maxlen > 0) {
+        char *subsystem = new char[maxlen + 1];
+        char *devnode = new char[maxlen + 1];
+        subsystem[0] = '\0';
+        devnode[0] = '\0';
+        cString msg;
+        if ((sscanf(Option, "%s %s", subsystem, devnode) == 2) && cUdevPatternFilter::AddFilter(subsystem, devnode))
+           msg = cString::sprintf("add udev-filter for %s %s", subsystem, devnode);
+        else {
+           ReplyCode = 550;
+           msg = cString::sprintf("can't add udev-filter for %s %s", subsystem, devnode);
+           }
+        delete [] subsystem;
+        delete [] devnode;
+        return msg;
         }
      }
   return NULL;

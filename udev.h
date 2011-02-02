@@ -25,6 +25,7 @@ public:
 
   const char  *GetAction(void) const;
   cUdevListEntry *GetDevlinksList(void) const;
+  const char  *GetDevnode(void) const;
   cUdevDevice *GetParent(void) const;
   const char  *GetPropertyValue(const char *Key) const;
   const char  *GetSyspath(void) const;

@@ -67,6 +67,13 @@ cUdevListEntry *cUdevDevice::GetDevlinksList(void) const
   return new cUdevListEntry(listEntry);
 }
 
+const char  *cUdevDevice::GetDevnode(void) const
+{
+  if (device == NULL)
+     return false;
+  return udev_device_get_devnode(device);
+}
+
 cUdevDevice *cUdevDevice::GetParent(void) const
 {
   if (device == NULL)
