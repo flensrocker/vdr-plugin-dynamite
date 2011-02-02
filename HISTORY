@@ -1,0 +1,72 @@
+VDR Plugin 'dynamite' Revision History
+--------------------------------------
+
+2011-01-06: Version 0.0.1
+
+- Initial revision.
+
+(developing and releasing were fast the last days
+ so skipping some meaningless changes...)
+
+2011-01-08: Version 0.0.4a
+
+- rework patch for vdr to it won't collide with other patches
+- LSTD outputs an asterisk behind the number of the primary device
+- the number corresponds to the index in the array so it won't
+  change for one device if others are attached/detached.
+- DETD called with a number tries to detach the device at the
+  given position in the array.
+
+2011-01-09: Version 0.0.4b
+
+- protect device array with a mutex
+- add Service Interface "dynamite-AttachDevice-v0.1" and
+  "dynamite-DetachDevice-v0.1"
+  the pointer passed in "Data" is interpreted as a devpath like
+  the SVDRP command ATTD and DETD.
+  Returns always "true" on these commands even if Data is NULL
+  as suggested in the docs.
+- don't detach device which are receiving something with a
+  priority > 0.
+
+2011-01-09: Version 0.0.4c
+
+- add new commands for locking/unlocking devices so the can
+  be protected from accidently detaching (LCKD / UNLD)
+- extend the Service interface with these commands
+  "dynamite-LockDevice-v0.1" / "dynamite-UnlockDevice-v0.1"
+
+2011-01-11: Version 0.0.4e
+
+- add new command SCND
+
+2011-01-11: Version 0.0.4i
+
+- now it seems to work... :-)
+
+2011-01-27: Version 0.0.4j
+
+- add "GetTS" watchdog
+- detach player and transfer mode on detach so all handles are freed
+
+2011-01-27: Version 0.0.5
+
+- add udev monitor for auto attaching new dvb-frontends
+- you can use "dynamite --log-udev" on the vdr commandline for logging
+  lots of udev events
+
+2011-01-27: Version 0.0.5a
+
+- refactor udev wrapper
+
+2011-01-29: Version 0.0.5b
+
+- add new command "SDGT" for setting a default "GetTS"-timeout for all attached
+  and "to be attached" devices
+- add "dynamite.DefaultGetTSTimeout" to setup.conf
+- speed up dvb-device creation
+- add alternate (more readable) commands for SVDRP like "AttachDevice" for "ATTD"
+
+2011-01-30: Version 0.0.5c
+
+- correct LDFLAGS in Makefile

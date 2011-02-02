@@ -1,0 +1,156 @@
+This is a "plugin" for the Video Disk Recorder (VDR).
+
+Written by:                  Lars Hanisch <dvb@flensrocker.de>
+
+Project's homepage:          <not yet assigned>
+
+Latest version available at: http://www.vdr-portal.de/board/thread.php?threadid=102903
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+See the file COPYING for more information.
+
+Description
+-----------
+This plugin turns the dvbdevices into hotpluggable devices. They
+can be dynamically attached and detached while vdr is running.
+They are replaced with a "dumb device" which can receive nothing.
+Don't forget to patch the vdr-source, you find the necessary one
+in the "patches" directory of the plugin sources.
+
+How it works
+------------
+It creates as many devices as it can till the global vdr-device-array
+is full. After this plugin is loaded every device created by a
+plugin can't be used by vdr. So make sure dynamite is loaded as
+the last plugin.
+
+If a device is dynamically attached to vdr, this plugin creates an
+instance of the corresponding cDevice-subclass and plugs it into
+a free "dumb device" mentioned above. Now this device can do
+everything its subdevice can do.
+
+If a device is detached the corresponding subdevice is deleted and
+the "dumb device" is dumb again.
+
+A device with receivers at priorities > 0 can't be detached.
+
+How to make other plugins "explosive"
+-------------------------------------
+Like cDvbDeviceProbe there is a list of probe-objects where a plugin
+can hook into (see cDynamicDeviceProbe at the end of patched device.h).
+The Probe-function gets an devicepath and if the plugin can handle
+this it returns a pointer to a new created device on the heap.
+Don't forget to pass through "ParentDevice" parameter to the cDevice
+constructor!
+
+You don't need to remember this pointer, it will be deleted by dynamite.
+The devicepath doesn't need to be a valid path like
+/dev/dvb/adapter0/frontend0 or /dev/video0 etc. since the plugin decides
+what it should do with this string. In dynamite.c you can see an example
+of an dynamic dummy device creator. It reacts on the devicepath
+"dummydevice" followed by a number e.g. "dummydevice0".
+
+If a plugin wants its device to be dynamically attached/detached it must
+not create its devices in its Initialize function. Instead it should
+queue the found devicepathes with the helper function
+"cDynamicDeviceProbe::QueueDynamicDeviceCommand". After initialization
+the dynamite-plugin is calling every cDynamicDeviceProbe with the queued
+devicepathes in its Initialize-function. See the patches directory for examples.
+
+The devices have to close all their handles in their destructor and clean
+up after them. Otherwise this is a potential source of memory leaks.
+Plugins which creates a cDvbDeviceProbe should replace it with a
+cDynamicDeviceProbe (you can use "#ifdef __DYNAMIC_DEVICE_PROBE" for
+conditional compiling).
+
+How to attach/detach a device
+-----------------------------
+There a some new SVDRP commands for the dynamic devices. The string in quotes
+above the command is for internal Service-interface of the vdr-plugins.
+
+"dynamite-AttachDevice-v0.1"
+ATTD devicepath
+    Asks all cDynamicDeviceProbe-objects to attach the given devicepath
+    till one returns a valid pointer. You can control the order by the
+    order of the plugins you load
+    alternate command: AttachDevice
+
+"dynamite-DetachDevice-v0.1"
+DETD devicepath
+    Looks through its remembered devicepaths and deletes the attached
+    device if found. Case is important!
+    Any timeouts or locks set to this slot will be reset to its defaults.
+    alternate command: DetachDevice
+
+"dynamite-ScanDevices-v0.1"
+SCND '/dev/path/glob*/pattern*'
+    Scan filesystem with pattern and try to attach each found device
+    don't forget to enclose the pattern with single quotes
+    e.g. SCND '/dev/dvb/adapter*/frontend*'
+    alternate command: ScanDevices
+
+"dynamite-LockDevice-v0.1"
+LCKD /dev/path/to/device
+    Lock the device so it can't be detached
+    alternate command: LockDevice
+
+"dynamite-UnlockDevice-v0.1"
+UNLD /dev/path/to/device
+    Remove the lock of the device so it can be detached
+    alternate command: UnlockDevice
+
+(no Service-interface)
+LSTD
+    Lists all devices managed by this plugin. The first column is an id,
+    the second column is the devicepath passed with ATTD
+    The id can be used with the DETD and UNLD commands instead of the path.
+    An asterisk behind the id means that this device is locked and
+    can't be detached.
+    alternate command: ListDevices
+
+"dynamite-SetGetTSTimeout-v0.1"
+SGTT /dev/path/to/device seconds
+    Sets the \"GetTSPacket\"-watchdog timeout to specified amount of seconds
+    If the device returns no data (Data == NULL) for this period of time,
+    the device will be detached. Usefull if you want to reload the driver etc.
+    A value of 0 seconds disables the watchdog.
+    alternate command: SetGetTSTimeout
+
+"dynamite-SetDefaultGetTSTimeout-v0.1"
+SDGT seconds
+    Sets the \"GetTSPacket\"-watchdog timeout for all attached devices
+    and all devices that will be attached.
+    alternate command: SetDefaultGetTSTimeout
+
+Don't forget to prefix them with "plug dynamite"...
+
+Parameters in setup.conf
+------------------------
+dynamite.DefaultGetTSTimeout = 0
+
+"GetTS" watchdog
+----------------
+Some DVB cards are known to be unstable - sometimes their driver just hangs
+and vdr won't get any data anymore. Mostly you have to stop vdr, reload the
+drivers and restart vdr again. But that would affect other recordings etc.
+If you have such a card the "Auto-Detach" feature may be useful. Just set
+the "GetTS" timeout to 10 or 15 seconds (or whatever you like) and dynamite
+will automatically detach this device if its GetTSPacket method returns
+no data for this period of time.
+WARNING: You have to attach this device manually again! For now there's no
+automatism to reload driver (or whatever is needed) to reanimate the device.
+
+Known issues
+------------
+If a device managed by this plugin is the primary device it cannot be
+detached. That would imply that vdr searches for a new primary device
+or should be forced to transfer mode or something else. These
+circumstances are under research...
+
+TODO
+----
+* implement interface for other plugins to use the udev monitor
+* implement some OSD functionality for detaching, locking etc.

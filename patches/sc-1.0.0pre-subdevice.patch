@@ -1,0 +1,215 @@
+diff --git a/device.c b/device.c
+index fe10d5e..b29a993 100644
+--- a/device.c
++++ b/device.c
+@@ -1334,6 +1334,17 @@ bool cScDeviceProbe::Probe(int Adapter, int Frontend)
+ // -- cScDevices ---------------------------------------------------------------
+ 
+ int cScDevices::budget=0;
++int cScDevices::numScDevices = 0;
++cScDevice *cScDevices::scdevice[MAXDEVICES] = { NULL };
++
++cScDevice *cScDevices::GetScDevice(int CardIndex)
++{
++  for (int n = 0; n < numScDevices; n++) {
++      if (scdevice[n] && (scdevice[n]->CardIndex() == CardIndex))
++         return scdevice[n];
++      }
++  return NULL;
++}
+ 
+ void cScDevices::DvbName(const char *Name, int a, int f, char *buffer, int len)
+ {
+@@ -1439,16 +1450,16 @@ void cScDevices::Startup(void)
+ {
+   if(ScSetup.ForceTransfer)
+     SetTransferModeForDolbyDigital(2);
+-  for(int n=cDevice::NumDevices(); --n>=0;) {
+-    cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(n));
++  for(int n=cScDevices::numScDevices; --n>=0;) {
++    cScDevice *dev=cScDevices::scdevice[n];
+     if(dev) dev->LateInit();
+     }
+ }
+ 
+ void cScDevices::Shutdown(void)
+ {
+-  for(int n=cDevice::NumDevices(); --n>=0;) {
+-    cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(n));
++  for(int n=cScDevices::numScDevices; --n>=0;) {
++    cScDevice *dev=cScDevices::scdevice[n];
+     if(dev) dev->EarlyShutdown();
+     }
+ }
+@@ -1490,19 +1501,36 @@ cScDevice::cScDevice(int Adapter, int Frontend, int cafd)
+ :cDvbDevice(Adapter)
+ #endif
+ {
++  lateInit = false;
+ #ifndef SASC
+   decsa=0; tsBuffer=0; cam=0; fullts=false;
+   ciadapter=0; hwciadapter=0;
+   fd_ca=cafd; fd_ca2=dup(fd_ca); fd_dvr=-1;
+   softcsa=(fd_ca<0);
++#ifdef __DYNAMIC_DEVICE_PROBE
++  if (parentDevice)
++      LateInit();
++#endif
+ #else
+   softcsa=fullts=false;
+   cam=new cCam(this,Adapter);
+ #endif // !SASC
++  index = 0;
++  while ((index < cScDevices::numScDevices) && (index < MAXDEVICES) && cScDevices::scdevice[index])
++        index++;
++  if (index < MAXDEVICES) {
++     cScDevices::scdevice[index] = this;
++     if (index == cScDevices::numScDevices)
++        cScDevices::numScDevices++;
++     }
++  else
++     esyslog("too many sc-devices!");
+ }
+ 
+ cScDevice::~cScDevice()
+ {
++  if ((index >= 0) && (index < MAXDEVICES) && (cScDevices::scdevice[index] == this))
++     cScDevices::scdevice[index] = NULL;
+ #ifndef SASC
+   DetachAllReceivers();
+   Cancel(3);
+@@ -1528,6 +1556,8 @@ void cScDevice::EarlyShutdown(void)
+ 
+ void cScDevice::LateInit(void)
+ {
++  if (lateInit) return;
++  lateInit = true;
+   int n=CardIndex();
+   if(DeviceNumber()!=n)
+     PRINTF(L_GEN_ERROR,"CardIndex - DeviceNumber mismatch! Put SC plugin first on VDR commandline!");
+@@ -1538,10 +1568,16 @@ void cScDevice::LateInit(void)
+     PRINTF(L_GEN_INFO,"Budget mode forced on card %d",n);
+     softcsa=true;
+     }
+-  
++#ifdef __DYNAMIC_DEVICE_PROBE
++  cDevice *cidev = parentDevice ? parentDevice : this;
++  if(fd_ca2>=0) hwciadapter=cDvbCiAdapter::CreateCiAdapter(cidev,fd_ca2);
++  cam=new cCam(this,n);
++  ciadapter=new cScCiAdapter(cidev,n,cam);
++#else
+   if(fd_ca2>=0) hwciadapter=cDvbCiAdapter::CreateCiAdapter(this,fd_ca2);
+   cam=new cCam(this,n);
+   ciadapter=new cScCiAdapter(this,n,cam);
++#endif
+   if(softcsa) {
+     decsa=new cDeCSA(n);
+     if(IsPrimaryDevice() && HasDecoder()) {
+diff --git a/device.h b/device.h
+index 5ad83f9..454d6ea 100644
+--- a/device.h
++++ b/device.h
+@@ -88,6 +88,8 @@ public:
+ 
+ // ----------------------------------------------------------------
+ 
++class cScDevice;
++
+ class cScDevices : public cDvbDevice {
+ private:
+   static int budget;
+@@ -106,6 +108,10 @@ public:
+   static bool ForceBudget(int n);
+   static void DvbName(const char *Name, int a, int f, char *buffer, int len);
+   static int DvbOpen(const char *Name, int a, int f, int Mode, bool ReportError=false);
++
++  static int numScDevices;
++  static cScDevice *scdevice[MAXDEVICES];
++  static cScDevice *GetScDevice(int CardIndex);
+   };
+ 
+ // ----------------------------------------------------------------
+@@ -123,6 +129,8 @@ private:
+   bool softcsa, fullts;
+   cMutex cafdMutex;
+   cTimeMs lastDump;
++  int index;
++  bool lateInit;
+   //
+ #ifndef SASC
+   void LateInit(void);
+diff --git a/sc.c b/sc.c
+index 82960bf..9f01217 100644
+--- a/sc.c
++++ b/sc.c
+@@ -1009,7 +1009,7 @@ void cSoftCAM::Shutdown(void)
+ 
+ char *cSoftCAM::CurrKeyStr(int CardNum, int num)
+ {
+-  cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(CardNum));
++  cScDevice *dev=cScDevices::GetScDevice(CardNum);
+   char *str=0;
+   if(dev) {
+     if(dev->Cam()) str=dev->Cam()->CurrentKeyStr(num);
+@@ -1020,8 +1020,8 @@ char *cSoftCAM::CurrKeyStr(int CardNum, int num)
+ 
+ bool cSoftCAM::Active(bool log)
+ {
+-  for(int n=cDevice::NumDevices(); --n>=0;) {
+-    cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(n));
++  for(int n=cScDevices::numScDevices; --n>=0;) {
++    cScDevice *dev=cScDevices::scdevice[n];
+     if(dev && dev->Cam() && dev->Cam()->Active(log)) return true;
+     }
+   return false;
+@@ -1029,33 +1029,33 @@ bool cSoftCAM::Active(bool log)
+ 
+ void cSoftCAM::SetLogStatus(int CardNum, const cEcmInfo *ecm, bool on)
+ {
+-  cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(CardNum));
++  cScDevice *dev=cScDevices::GetScDevice(CardNum);
+   if(dev && dev->Cam()) dev->Cam()->LogEcmStatus(ecm,on);
+ }
+ 
+ void cSoftCAM::AddHook(int CardNum, cLogHook *hook)
+ {
+-  cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(CardNum));
++  cScDevice *dev=cScDevices::GetScDevice(CardNum);
+   if(dev && dev->Cam()) dev->Cam()->AddHook(hook);
+ }
+ 
+ bool cSoftCAM::TriggerHook(int CardNum, int id)
+ {
+-  cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(CardNum));
++  cScDevice *dev=cScDevices::GetScDevice(CardNum);
+   return dev && dev->Cam() && dev->Cam()->TriggerHook(id);
+ }
+ 
+ void cSoftCAM::CaidsChanged(void)
+ {
+-  for(int n=cDevice::NumDevices(); --n>=0;) {
+-    cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(n));
++  for(int n=cScDevices::numScDevices; --n>=0;) {
++    cScDevice *dev=cScDevices::scdevice[n];
+     if(dev) dev->CaidsChanged();
+     }
+ }
+ 
+ int cSoftCAM::FilterHandle(int CardNum)
+ {
+-  cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(CardNum));
++  cScDevice *dev=cScDevices::GetScDevice(CardNum);
+   return dev ? dev->FilterHandle() : -1;
+ }
+ 
+@@ -1086,8 +1086,8 @@ void cScHousekeeper::Action(void)
+   while(Running()) {
+     if(++c==20) {
+       c=0;
+-      for(int n=cDevice::NumDevices(); --n>=0;) {
+-        cScDevice *dev=dynamic_cast<cScDevice *>(cDevice::GetDevice(n));
++      for(int n=cScDevices::numScDevices; --n>=0;) {
++        cScDevice *dev=cScDevices::scdevice[n];
+         if(dev && dev->Cam()) dev->Cam()->HouseKeeping();
+         }
+       }
