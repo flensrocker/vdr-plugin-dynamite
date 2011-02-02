@@ -2,9 +2,9 @@ This is a "plugin" for the Video Disk Recorder (VDR).
 
 Written by:                  Lars Hanisch <dvb@flensrocker.de>
 
-Project's homepage:          <not yet assigned>
+Project's homepage:          http://projects.vdr-developer.org/projects/plg-dynamite
 
-Latest version available at: http://www.vdr-portal.de/board/thread.php?threadid=102903
+Latest version available at: git clone git://projects.vdr-developer.org/vdr-plugin-dynamite.git
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@ Description
 -----------
 This plugin turns the dvbdevices into hotpluggable devices. They
 can be dynamically attached and detached while vdr is running.
-They are replaced with a "dumb device" which can receive nothing.
 Don't forget to patch the vdr-source, you find the necessary one
 in the "patches" directory of the plugin sources.
 
@@ -43,7 +42,7 @@ Like cDvbDeviceProbe there is a list of probe-objects where a plugin
 can hook into (see cDynamicDeviceProbe at the end of patched device.h).
 The Probe-function gets an devicepath and if the plugin can handle
 this it returns a pointer to a new created device on the heap.
-Don't forget to pass through "ParentDevice" parameter to the cDevice
+Don't forget to pass through the "ParentDevice" parameter to the cDevice
 constructor!
 
 You don't need to remember this pointer, it will be deleted by dynamite.
@@ -55,10 +54,11 @@ of an dynamic dummy device creator. It reacts on the devicepath
 
 If a plugin wants its device to be dynamically attached/detached it must
 not create its devices in its Initialize function. Instead it should
-queue the found devicepathes with the helper function
-"cDynamicDeviceProbe::QueueDynamicDeviceCommand". After initialization
-the dynamite-plugin is calling every cDynamicDeviceProbe with the queued
-devicepathes in its Initialize-function. See the patches directory for examples.
+queue the found devicepaths with the helper function
+"cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, devpath)".
+After initialization the dynamite-plugin is calling every cDynamicDeviceProbe
+with the queued devicepaths in its Initialize-function. See the patches
+directory for examples.
 
 The devices have to close all their handles in their destructor and clean
 up after them. Otherwise this is a potential source of memory leaks.
@@ -66,10 +66,13 @@ Plugins which creates a cDvbDeviceProbe should replace it with a
 cDynamicDeviceProbe (you can use "#ifdef __DYNAMIC_DEVICE_PROBE" for
 conditional compiling).
 
+If you're looking for an example grab the source of pvrinput from:
+http://projects.vdr-developer.org/projects/plg-pvrinput
+
 How to attach/detach a device
 -----------------------------
 There a some new SVDRP commands for the dynamic devices. The string in quotes
-above the command is for internal Service-interface of the vdr-plugins.
+above the command is for the internal Service-interface of the vdr-plugins.
 
 "dynamite-AttachDevice-v0.1"
 ATTD devicepath
@@ -141,14 +144,15 @@ the "GetTS" timeout to 10 or 15 seconds (or whatever you like) and dynamite
 will automatically detach this device if its GetTSPacket method returns
 no data for this period of time.
 WARNING: You have to attach this device manually again! For now there's no
-automatism to reload driver (or whatever is needed) to reanimate the device.
+automatism to reload the driver (or whatever is needed) to reanimate the device.
 
 Known issues
 ------------
 If a device managed by this plugin is the primary device it cannot be
 detached. That would imply that vdr searches for a new primary device
-or should be forced to transfer mode or something else. These
-circumstances are under research...
+or should be forced to transfer mode or something else. Since I don't
+know anything about this you have to wait for this feature or teach
+me how to do this...
 
 TODO
 ----
