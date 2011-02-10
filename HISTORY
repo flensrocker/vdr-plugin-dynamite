@@ -78,3 +78,8 @@ VDR Plugin 'dynamite' Revision History
 2011-02-03: Version 0.0.5e
 
 - rework vdr-patch to avoid problems with EITScanner (no ABI changes)
+
+2011-02-10: Version 0.0.5f
+
+- add new command to cDynamicDeviceProbe to call dynamite-Service (no ABI changes)
+- extend udev-monitor with parsing of a timeout-value set by some udev rule

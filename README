@@ -159,6 +159,8 @@ If you want to add a timeout only to specific devices you can do this with udev.
 Add a rule which sets with ENV{dynamite_timeout}="10" the needed timeout value.
 The udev-monitor in dynamite will evaluate this device-property.
 For now this only works for attaching via udev-monitor!
+example for udev rule:
+ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend", ENV{dynamite_timeout}="10"
 
 Known issues
 ------------
