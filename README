@@ -155,6 +155,11 @@ no data for this period of time.
 WARNING: You have to attach this device manually again! For now there's no
 automatism to reload the driver (or whatever is needed) to reanimate the device.
 
+If you want to add a timeout only to specific devices you can do this with udev.
+Add a rule which sets with ENV{dynamite_timeout}="10" the needed timeout value.
+The udev-monitor in dynamite will evaluate this device-property.
+For now this only works for attaching via udev-monitor!
+
 Known issues
 ------------
 If a device managed by this plugin is the primary device it cannot be

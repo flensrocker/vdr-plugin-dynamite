@@ -2,6 +2,7 @@
 #include <glob.h>
 #include <vdr/transfer.h>
 
+cPlugin *cDynamicDevice::dynamite = NULL;
 int cDynamicDevice::defaultGetTSTimeout = 0;
 cDvbDeviceProbe *cDynamicDevice::dvbprobe = NULL;
 int cDynamicDevice::numDynamicDevices = 0;
@@ -38,6 +39,21 @@ bool cDynamicDevice::ProcessQueuedCommands(void)
          case ddpcDetach:
           {
            DetachDevice(*dev->devpath);
+           break;
+          }
+         case ddpcService:
+          {
+           if (dynamite && (dev->devpath != NULL) && (**dev->devpath != NULL)) {
+              int len = strlen(*dev->devpath);
+              if (len > 0) {
+                 char *data = strchr(const_cast<char*>(**dev->devpath), ' ');
+                 if (data != NULL) {
+                    data[0] = '\0';
+                    data++;
+                    dynamite->Service(*dev->devpath, data);
+                    }
+                 }
+              }
            break;
           }
         }

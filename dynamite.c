@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5e";
+static const char *VERSION        = "0.0.5f";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -76,6 +76,7 @@ public:
 
 cPluginDynamite::cPluginDynamite(void)
 {
+  cDynamicDevice::dynamite = this;
   cDynamicDevice::dvbprobe = new cDynamiteDvbDeviceProbe;
   // make sure we're the first one you cares for dvbdevices
   cDvbDeviceProbe *firstDvbProbe = DvbDeviceProbes.First();

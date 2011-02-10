@@ -154,7 +154,7 @@ index 681049b..c758390 100644
 +  DynamicDeviceProbes.Del(this, false);
 +}
 diff --git a/device.h b/device.h
-index cb3bc2c..8364e73 100644
+index cb3bc2c..fc0e5c5 100644
 --- a/device.h
 +++ b/device.h
 @@ -163,7 +163,6 @@ private:
@@ -241,7 +241,7 @@ index cb3bc2c..8364e73 100644
 +
 +#define __DYNAMIC_DEVICE_PROBE
 +
-+enum eDynamicDeviceProbeCommand { ddpcAttach, ddpcDetach };
++enum eDynamicDeviceProbeCommand { ddpcAttach, ddpcDetach, ddpcService };
 +
 +class cDynamicDeviceProbe : public cListObject {
 +  friend class cDynamicDevice;

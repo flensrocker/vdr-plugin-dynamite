@@ -2,6 +2,7 @@
 #define __DYNAMITEDEVICE_H
 
 #include <vdr/dvbdevice.h>
+#include <vdr/plugin.h>
 
 enum eDynamicDeviceReturnCode { ddrcSuccess,
                                 ddrcNoFreeDynDev,
@@ -14,7 +15,9 @@ enum eDynamicDeviceReturnCode { ddrcSuccess,
                              };
 
 class cDynamicDevice : public cDevice {
+ friend class cPluginDynamite;
 private:
+  static cPlugin *dynamite;
   static int defaultGetTSTimeout;
 
   static int numDynamicDevices;
