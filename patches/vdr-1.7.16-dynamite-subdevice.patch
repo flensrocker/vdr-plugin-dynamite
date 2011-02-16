@@ -1,5 +1,5 @@
 diff --git a/device.c b/device.c
-index 681049b..c758390 100644
+index 681049b..2b37fd9 100644
 --- a/device.c
 +++ b/device.c
 @@ -72,12 +72,21 @@ cDevice *cDevice::device[MAXDEVICES] = { NULL };
@@ -64,18 +64,16 @@ index 681049b..c758390 100644
    for (int i = 0; i < numDevices; i++) {
        if (device[i] == this)
           return i;
-@@ -328,6 +345,10 @@ bool cDevice::HasCi(void)
+@@ -328,6 +345,8 @@ bool cDevice::HasCi(void)
  
  void cDevice::SetCamSlot(cCamSlot *CamSlot)
  {
-+  if (parentDevice) {
-+     parentDevice->SetCamSlot(CamSlot);
-+     return;
-+     }
++  if (parentDevice)
++     return parentDevice->SetCamSlot(CamSlot);
    camSlot = CamSlot;
  }
  
-@@ -531,6 +552,10 @@ bool cDevice::SetPid(cPidHandle *Handle, int Type, bool On)
+@@ -531,6 +550,10 @@ bool cDevice::SetPid(cPidHandle *Handle, int Type, bool On)
  
  void cDevice::StartSectionHandler(void)
  {
@@ -86,7 +84,7 @@ index 681049b..c758390 100644
    if (!sectionHandler) {
       sectionHandler = new cSectionHandler(this);
       AttachFilter(eitFilter = new cEitFilter);
-@@ -542,6 +567,10 @@ void cDevice::StartSectionHandler(void)
+@@ -542,6 +565,10 @@ void cDevice::StartSectionHandler(void)
  
  void cDevice::StopSectionHandler(void)
  {
@@ -97,28 +95,60 @@ index 681049b..c758390 100644
    if (sectionHandler) {
       delete nitFilter;
       delete sdtFilter;
-@@ -568,12 +597,20 @@ void cDevice::CloseFilter(int Handle)
+@@ -568,12 +595,16 @@ void cDevice::CloseFilter(int Handle)
  
  void cDevice::AttachFilter(cFilter *Filter)
  {
-+  if (parentDevice) {
-+     parentDevice->AttachFilter(Filter);
-+     return;
-+     }
++  if (parentDevice)
++     return parentDevice->AttachFilter(Filter);
    if (sectionHandler)
       sectionHandler->Attach(Filter);
  }
  
  void cDevice::Detach(cFilter *Filter)
  {
-+  if (parentDevice) {
-+     parentDevice->Detach(Filter);
-+     return;
-+     }
++  if (parentDevice)
++     return parentDevice->Detach(Filter);
    if (sectionHandler)
       sectionHandler->Detach(Filter);
  }
-@@ -1461,6 +1498,8 @@ bool cDevice::Ready(void)
+@@ -1126,6 +1157,8 @@ bool cDevice::Transferring(void) const
+ 
+ bool cDevice::AttachPlayer(cPlayer *Player)
+ {
++  if (parentDevice)
++     return parentDevice->AttachPlayer(Player);
+   if (CanReplay()) {
+      if (player)
+         Detach(player);
+@@ -1145,6 +1178,8 @@ bool cDevice::AttachPlayer(cPlayer *Player)
+ 
+ void cDevice::Detach(cPlayer *Player)
+ {
++  if (parentDevice)
++     return parentDevice->Detach(Player);
+   if (Player && player == Player) {
+      cPlayer *p = player;
+      player = NULL; // avoids recursive calls to Detach()
+@@ -1164,6 +1199,8 @@ void cDevice::Detach(cPlayer *Player)
+ 
+ void cDevice::StopReplay(void)
+ {
++  if (parentDevice)
++     return parentDevice->StopReplay();
+   if (player) {
+      Detach(player);
+      if (IsPrimaryDevice())
+@@ -1446,6 +1483,8 @@ int cDevice::PlayTs(const uchar *Data, int Length, bool VideoOnly)
+ 
+ int cDevice::Priority(void) const
+ {
++  if (parentDevice)
++     return parentDevice->Priority();
+   int priority = IsPrimaryDevice() ? Setup.PrimaryLimit - 1 : DEFAULTPRIORITY;
+   for (int i = 0; i < MAXRECEIVERS; i++) {
+       if (receiver[i])
+@@ -1461,6 +1500,8 @@ bool cDevice::Ready(void)
  
  bool cDevice::Receiving(bool CheckAny) const
  {
@@ -127,7 +157,43 @@ index 681049b..c758390 100644
    for (int i = 0; i < MAXRECEIVERS; i++) {
        if (receiver[i] && (CheckAny || receiver[i]->priority >= 0)) // cReceiver with priority < 0 doesn't count
           return true;
-@@ -1690,3 +1729,25 @@ uchar *cTSBuffer::Get(void)
+@@ -1540,6 +1581,8 @@ bool cDevice::GetTSPacket(uchar *&Data)
+ 
+ bool cDevice::AttachReceiver(cReceiver *Receiver)
+ {
++  if (parentDevice)
++     return parentDevice->AttachReceiver(Receiver);
+   if (!Receiver)
+      return false;
+   if (Receiver->device == this)
+@@ -1582,6 +1625,8 @@ bool cDevice::AttachReceiver(cReceiver *Receiver)
+ 
+ void cDevice::Detach(cReceiver *Receiver)
+ {
++  if (parentDevice)
++     return parentDevice->Detach(Receiver);
+   if (!Receiver || Receiver->device != this)
+      return;
+   bool receiversLeft = false;
+@@ -1607,6 +1652,8 @@ void cDevice::Detach(cReceiver *Receiver)
+ 
+ void cDevice::DetachAll(int Pid)
+ {
++  if (parentDevice)
++     return parentDevice->DetachAll(Pid);
+   if (Pid) {
+      cMutexLock MutexLock(&mutexReceiver);
+      for (int i = 0; i < MAXRECEIVERS; i++) {
+@@ -1619,6 +1666,8 @@ void cDevice::DetachAll(int Pid)
+ 
+ void cDevice::DetachAllReceivers(void)
+ {
++  if (parentDevice)
++     return parentDevice->DetachAllReceivers();
+   cMutexLock MutexLock(&mutexReceiver);
+   for (int i = 0; i < MAXRECEIVERS; i++)
+       Detach(receiver[i]);
+@@ -1690,3 +1739,25 @@ uchar *cTSBuffer::Get(void)
       }
    return NULL;
  }
