@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5h";
+static const char *VERSION        = "0.0.5i";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -178,7 +178,7 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
   int replyCode;
   if (strcasecmp(Name, "DefaultGetTSTimeout") == 0)
      SVDRPCommand("SetDefaultGetTSTimeout", Value, replyCode);
-  if (strcasecmp(Name, "GetTSTimeoutHandler") == 0) {
+  else if (strcasecmp(Name, "GetTSTimeoutHandler") == 0) {
      if (getTSTimeoutHandler != NULL)
         delete getTSTimeoutHandler;
      getTSTimeoutHandler = NULL;
@@ -240,17 +240,17 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
         }
      return true;
      }
-  if (strcmp(Id, "dynamite-CallGetTSTimeoutHandler-v0.1") == 0) {
-     if (Data != NULL) {
-        int replyCode;
-        SVDRPCommand("CallGetTSTimeoutHandler", (const char*)Data, replyCode);
-        }
-     return true;
-     }
   if (strcmp(Id, "dynamite-SetGetTSTimeoutHandlerArg-v0.1") == 0) {
      if (Data != NULL) {
         int replyCode;
         SVDRPCommand("SetGetTSTimeoutHandlerArg", (const char*)Data, replyCode);
+        }
+     return true;
+     }
+  if (strcmp(Id, "dynamite-CallGetTSTimeoutHandler-v0.1") == 0) {
+     if (Data != NULL) {
+        int replyCode;
+        SVDRPCommand("CallGetTSTimeoutHandler", (const char*)Data, replyCode);
         }
      return true;
      }
@@ -402,23 +402,6 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
         }
      }
 
-  if (strcasecmp(Command, "CallGetTSTimeoutHandler") == 0) {
-     if (getTSTimeoutHandler == NULL) {
-        cString msg = cString::sprintf("no GetTSTimeoutHandler configured, arg: %s", Option);
-        isyslog("dynamite: %s", *msg);
-        return cString("no GetTSTimeoutHandler configured, arg: %s", Option);
-        }
-     isyslog("dynamite: executing %s %s", **getTSTimeoutHandler, Option);
-     if (system(*cString::sprintf("%s %s", **getTSTimeoutHandler, Option)) < 0) {
-        cString msg = cString::sprintf("error (%d) on executing %s %s", errno, **getTSTimeoutHandler, Option);
-        isyslog("dynamite: %s", *msg);
-        return msg;
-        }
-     cString msg = cString::sprintf("success on executing %s %s", **getTSTimeoutHandler, Option);
-     isyslog("dynamite: %s", *msg);
-     return msg;
-     }
-
   if (strcasecmp(Command, "SetGetTSTimeoutHandlerArg") == 0) {
      cString ret;
      int len = strlen(Option);
@@ -433,6 +416,23 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
            }
         }
      return ret;
+     }
+
+  if (strcasecmp(Command, "CallGetTSTimeoutHandler") == 0) {
+     if (getTSTimeoutHandler == NULL) {
+        cString msg = cString::sprintf("no GetTSTimeoutHandler configured, arg: %s", Option);
+        isyslog("dynamite: %s", *msg);
+        return cString("no GetTSTimeoutHandler configured, arg: %s", Option);
+        }
+     isyslog("dynamite: executing %s %s", **getTSTimeoutHandler, Option);
+     if (SystemExec(*cString::sprintf("%s %s", **getTSTimeoutHandler, Option), true) < 0) {
+        cString msg = cString::sprintf("error (%d) on executing %s %s", errno, **getTSTimeoutHandler, Option);
+        isyslog("dynamite: %s", *msg);
+        return msg;
+        }
+     cString msg = cString::sprintf("success on executing %s %s", **getTSTimeoutHandler, Option);
+     isyslog("dynamite: %s", *msg);
+     return msg;
      }
 
   return NULL;

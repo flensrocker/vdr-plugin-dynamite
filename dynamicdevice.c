@@ -740,7 +740,8 @@ bool cDynamicDevice::GetTSPacket(uchar *&Data)
               const char *d = NULL;
               if (devpath)
                  d = **devpath;
-              esyslog("dynamite: device %s hasn't delivered any data for %d seconds, it will be detached", d, getTSTimeout);
+              esyslog("dynamite: device %s hasn't delivered any data for %d seconds, detaching all receivers", d, getTSTimeout);
+              subDevice->DetachAllReceivers();
               cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, *devpath);
               const char *timeoutHandlerArg = *devpath;
               if (getTSTimeoutHandlerArg)
