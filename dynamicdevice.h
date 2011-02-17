@@ -44,9 +44,12 @@ private:
   bool     isDetachable;
   time_t   getTSWatchdog;
   int      getTSTimeout;
+  bool     restartSectionHandler;
 public:
   cDynamicDevice();
   void DeleteSubDevice(void);
+  virtual bool SetIdleDevice(bool Idle, bool TestOnly);
+  virtual bool CanScanForEPG(void) const;
 protected:
   virtual ~cDynamicDevice();
   virtual bool Ready(void);

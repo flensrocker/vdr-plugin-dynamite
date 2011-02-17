@@ -264,6 +264,7 @@ cDynamicDevice::cDynamicDevice()
 ,devpath(NULL)
 ,isDetachable(true)
 ,getTSTimeout(defaultGetTSTimeout)
+,restartSectionHandler(false)
 {
   index = numDynamicDevices;
   if (numDynamicDevices < MAXDEVICES) {
@@ -297,6 +298,20 @@ void cDynamicDevice::DeleteSubDevice()
      }
   isDetachable = true;
   getTSTimeout = defaultGetTSTimeout;
+}
+
+bool cDynamicDevice::SetIdleDevice(bool Idle, bool TestOnly)
+{
+  if (subDevice)
+     return subDevice->SetIdleDevice(Idle, TestOnly);
+  return false;
+}
+
+bool cDynamicDevice::CanScanForEPG(void) const
+{
+  if (subDevice)
+     return subDevice->CanScanForEPG();
+  return false;
 }
 
 void cDynamicDevice::MakePrimaryDevice(bool On)

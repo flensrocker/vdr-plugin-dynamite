@@ -1,8 +1,8 @@
 diff --git a/device.c b/device.c
-index 681049b..2b37fd9 100644
+index 681049b..356fb76 100644
 --- a/device.c
 +++ b/device.c
-@@ -72,12 +72,21 @@ cDevice *cDevice::device[MAXDEVICES] = { NULL };
+@@ -72,12 +72,22 @@ cDevice *cDevice::device[MAXDEVICES] = { NULL };
  cDevice *cDevice::primaryDevice = NULL;
  cDevice *cDevice::avoidDevice = NULL;
  cList<cDeviceHook> cDevice::deviceHooks;
@@ -14,6 +14,7 @@ index 681049b..2b37fd9 100644
 -{
 -  cardIndex = nextCardIndex++;
 -  dsyslog("new device number %d", CardIndex() + 1);
++,isIdle(false)
 +,parentDevice(ParentDevice)
 +,subDevice(NULL)
 +{
@@ -28,7 +29,7 @@ index 681049b..2b37fd9 100644
  
    SetDescription("receiver on device %d", CardIndex() + 1);
  
-@@ -108,10 +117,14 @@ cDevice::cDevice(void)
+@@ -108,10 +118,14 @@ cDevice::cDevice(void)
    for (int i = 0; i < MAXRECEIVERS; i++)
        receiver[i] = NULL;
  
@@ -46,16 +47,37 @@ index 681049b..2b37fd9 100644
  }
  
  cDevice::~cDevice()
-@@ -120,6 +133,8 @@ cDevice::~cDevice()
+@@ -120,6 +134,29 @@ cDevice::~cDevice()
    DetachAllReceivers();
    delete liveSubtitle;
    delete dvbSubtitleConverter;
 +  if (parentDevice && (parentDevice->subDevice == this))
 +     parentDevice->subDevice = NULL;
++}
++
++bool cDevice::SetIdle(bool Idle)
++{
++  if (parentDevice)
++     return parentDevice->SetIdle(Idle);
++  if (isIdle == Idle)
++     return true;
++  if (Receiving(false))
++     return false;
++  if (Idle) {
++     Detach(player);
++     DetachAllReceivers();
++     }
++  if (!SetIdleDevice(Idle, true))
++     return false;
++  isIdle = Idle;
++  if (SetIdleDevice(Idle, false))
++     return true;
++  isIdle = !Idle;
++  return false;
  }
  
  bool cDevice::WaitForAllDevicesReady(int Timeout)
-@@ -158,6 +173,8 @@ int cDevice::NextCardIndex(int n)
+@@ -158,6 +195,8 @@ int cDevice::NextCardIndex(int n)
  
  int cDevice::DeviceNumber(void) const
  {
@@ -64,7 +86,7 @@ index 681049b..2b37fd9 100644
    for (int i = 0; i < numDevices; i++) {
        if (device[i] == this)
           return i;
-@@ -328,6 +345,8 @@ bool cDevice::HasCi(void)
+@@ -328,6 +367,8 @@ bool cDevice::HasCi(void)
  
  void cDevice::SetCamSlot(cCamSlot *CamSlot)
  {
@@ -73,7 +95,7 @@ index 681049b..2b37fd9 100644
    camSlot = CamSlot;
  }
  
-@@ -531,6 +550,10 @@ bool cDevice::SetPid(cPidHandle *Handle, int Type, bool On)
+@@ -531,6 +572,10 @@ bool cDevice::SetPid(cPidHandle *Handle, int Type, bool On)
  
  void cDevice::StartSectionHandler(void)
  {
@@ -84,7 +106,7 @@ index 681049b..2b37fd9 100644
    if (!sectionHandler) {
       sectionHandler = new cSectionHandler(this);
       AttachFilter(eitFilter = new cEitFilter);
-@@ -542,6 +565,10 @@ void cDevice::StartSectionHandler(void)
+@@ -542,6 +587,10 @@ void cDevice::StartSectionHandler(void)
  
  void cDevice::StopSectionHandler(void)
  {
@@ -95,7 +117,7 @@ index 681049b..2b37fd9 100644
    if (sectionHandler) {
       delete nitFilter;
       delete sdtFilter;
-@@ -568,12 +595,16 @@ void cDevice::CloseFilter(int Handle)
+@@ -568,12 +617,16 @@ void cDevice::CloseFilter(int Handle)
  
  void cDevice::AttachFilter(cFilter *Filter)
  {
@@ -112,7 +134,7 @@ index 681049b..2b37fd9 100644
    if (sectionHandler)
       sectionHandler->Detach(Filter);
  }
-@@ -1126,6 +1157,8 @@ bool cDevice::Transferring(void) const
+@@ -1126,6 +1179,8 @@ bool cDevice::Transferring(void) const
  
  bool cDevice::AttachPlayer(cPlayer *Player)
  {
@@ -121,7 +143,7 @@ index 681049b..2b37fd9 100644
    if (CanReplay()) {
       if (player)
          Detach(player);
-@@ -1145,6 +1178,8 @@ bool cDevice::AttachPlayer(cPlayer *Player)
+@@ -1145,6 +1200,8 @@ bool cDevice::AttachPlayer(cPlayer *Player)
  
  void cDevice::Detach(cPlayer *Player)
  {
@@ -130,7 +152,7 @@ index 681049b..2b37fd9 100644
    if (Player && player == Player) {
       cPlayer *p = player;
       player = NULL; // avoids recursive calls to Detach()
-@@ -1164,6 +1199,8 @@ void cDevice::Detach(cPlayer *Player)
+@@ -1164,6 +1221,8 @@ void cDevice::Detach(cPlayer *Player)
  
  void cDevice::StopReplay(void)
  {
@@ -139,7 +161,7 @@ index 681049b..2b37fd9 100644
    if (player) {
       Detach(player);
       if (IsPrimaryDevice())
-@@ -1446,6 +1483,8 @@ int cDevice::PlayTs(const uchar *Data, int Length, bool VideoOnly)
+@@ -1446,6 +1505,8 @@ int cDevice::PlayTs(const uchar *Data, int Length, bool VideoOnly)
  
  int cDevice::Priority(void) const
  {
@@ -148,7 +170,7 @@ index 681049b..2b37fd9 100644
    int priority = IsPrimaryDevice() ? Setup.PrimaryLimit - 1 : DEFAULTPRIORITY;
    for (int i = 0; i < MAXRECEIVERS; i++) {
        if (receiver[i])
-@@ -1461,6 +1500,8 @@ bool cDevice::Ready(void)
+@@ -1461,6 +1522,8 @@ bool cDevice::Ready(void)
  
  bool cDevice::Receiving(bool CheckAny) const
  {
@@ -157,7 +179,7 @@ index 681049b..2b37fd9 100644
    for (int i = 0; i < MAXRECEIVERS; i++) {
        if (receiver[i] && (CheckAny || receiver[i]->priority >= 0)) // cReceiver with priority < 0 doesn't count
           return true;
-@@ -1540,6 +1581,8 @@ bool cDevice::GetTSPacket(uchar *&Data)
+@@ -1540,6 +1603,8 @@ bool cDevice::GetTSPacket(uchar *&Data)
  
  bool cDevice::AttachReceiver(cReceiver *Receiver)
  {
@@ -166,7 +188,7 @@ index 681049b..2b37fd9 100644
    if (!Receiver)
       return false;
    if (Receiver->device == this)
-@@ -1582,6 +1625,8 @@ bool cDevice::AttachReceiver(cReceiver *Receiver)
+@@ -1582,6 +1647,8 @@ bool cDevice::AttachReceiver(cReceiver *Receiver)
  
  void cDevice::Detach(cReceiver *Receiver)
  {
@@ -175,7 +197,7 @@ index 681049b..2b37fd9 100644
    if (!Receiver || Receiver->device != this)
       return;
    bool receiversLeft = false;
-@@ -1607,6 +1652,8 @@ void cDevice::Detach(cReceiver *Receiver)
+@@ -1607,6 +1674,8 @@ void cDevice::Detach(cReceiver *Receiver)
  
  void cDevice::DetachAll(int Pid)
  {
@@ -184,7 +206,7 @@ index 681049b..2b37fd9 100644
    if (Pid) {
       cMutexLock MutexLock(&mutexReceiver);
       for (int i = 0; i < MAXRECEIVERS; i++) {
-@@ -1619,6 +1666,8 @@ void cDevice::DetachAll(int Pid)
+@@ -1619,6 +1688,8 @@ void cDevice::DetachAll(int Pid)
  
  void cDevice::DetachAllReceivers(void)
  {
@@ -193,7 +215,7 @@ index 681049b..2b37fd9 100644
    cMutexLock MutexLock(&mutexReceiver);
    for (int i = 0; i < MAXRECEIVERS; i++)
        Detach(receiver[i]);
-@@ -1690,3 +1739,25 @@ uchar *cTSBuffer::Get(void)
+@@ -1690,3 +1761,25 @@ uchar *cTSBuffer::Get(void)
       }
    return NULL;
  }
@@ -220,7 +242,7 @@ index 681049b..2b37fd9 100644
 +  DynamicDeviceProbes.Del(this, false);
 +}
 diff --git a/device.h b/device.h
-index cb3bc2c..fc0e5c5 100644
+index cb3bc2c..9722bfd 100644
 --- a/device.h
 +++ b/device.h
 @@ -163,7 +163,6 @@ private:
@@ -261,7 +283,7 @@ index cb3bc2c..fc0e5c5 100644
    virtual bool CanReplay(void) const;
         ///< Returns true if this device can currently start a replay session.
    virtual bool SetPlayMode(ePlayMode PlayMode);
-@@ -712,6 +702,31 @@ public:
+@@ -712,6 +702,39 @@ public:
         ///< Detaches all receivers from this device for this pid.
    void DetachAllReceivers(void);
         ///< Detaches all receivers from this device.
@@ -272,6 +294,7 @@ index cb3bc2c..fc0e5c5 100644
 +  static cDevice *nextParentDevice;
 +         ///< Holds the parent device for the next subdevice
 +         ///< so the dynamite-plugin can work with unpatched plugins
++  bool isIdle;
 +protected:
 +  cDevice *parentDevice;
 +  cDevice *subDevice;
@@ -289,11 +312,18 @@ index cb3bc2c..fc0e5c5 100644
 +  bool IsSubDevice(void) const { return (parentDevice != NULL); }
 +  bool HasSubDevice(void) const { return (subDevice != NULL); }
 +  cDevice *SubDevice(void) const { return subDevice; }
++  bool IsIdle(void) const { return isIdle; }
++  bool SetIdle(bool Idle);
++  virtual bool SetIdleDevice(bool Idle, bool TestOnly) { return false; }
++         ///< Called by SetIdle
++         ///< if TestOnly, don't do anything, just return, if the device
++         ///< can be set to the new idle state
++  virtual bool CanScanForEPG(void) const { return !IsIdle(); }
 +  // --- dynamite subdevice patch end ---
    };
  
  /// Derived cDevice classes that can receive channels will have to provide
-@@ -735,4 +750,47 @@ public:
+@@ -735,4 +758,47 @@ public:
    uchar *Get(void);
    };
  
@@ -355,7 +385,7 @@ index 5289bbd..ea54bdb 100644
  
  int cDvbCiAdapter::Read(uint8_t *Buffer, int MaxLength)
 diff --git a/dvbdevice.c b/dvbdevice.c
-index f32b350..df2e679 100644
+index f32b350..e33301a 100644
 --- a/dvbdevice.c
 +++ b/dvbdevice.c
 @@ -259,6 +259,7 @@ private:
@@ -366,7 +396,13 @@ index f32b350..df2e679 100644
    int tuneTimeout;
    int lockTimeout;
    time_t lastTimeoutReport;
-@@ -273,7 +274,7 @@ private:
+@@ -269,25 +270,29 @@ private:
+   cMutex mutex;
+   cCondVar locked;
+   cCondVar newSet;
++  bool OpenFrontend(void);
++  bool CloseFrontend(void);
+   bool GetFrontendStatus(fe_status_t &Status, int TimeoutMs = 0);
    bool SetFrontend(void);
    virtual void Action(void);
  public:
@@ -375,8 +411,9 @@ index f32b350..df2e679 100644
    virtual ~cDvbTuner();
    const cChannel *GetTransponder(void) const { return &channel; }
    bool IsTunedTo(const cChannel *Channel) const;
-@@ -281,13 +282,14 @@ public:
+   void Set(const cChannel *Channel);
    bool Locked(int TimeoutMs = 0);
++  bool SetIdle(bool Idle);
    };
  
 -cDvbTuner::cDvbTuner(int Device, int Fd_Frontend, int Adapter, int Frontend, fe_delivery_system FrontendType)
@@ -391,16 +428,84 @@ index f32b350..df2e679 100644
    tuneTimeout = 0;
    lockTimeout = 0;
    lastTimeoutReport = 0;
-@@ -305,6 +307,8 @@ cDvbTuner::~cDvbTuner()
+@@ -305,6 +310,8 @@ cDvbTuner::~cDvbTuner()
    newSet.Broadcast();
    locked.Broadcast();
    Cancel(3);
 +  if (dvbdevice && dvbdevice->IsSubDevice())
-+     close(fd_frontend);
++     CloseFrontend();
  }
  
  bool cDvbTuner::IsTunedTo(const cChannel *Channel) const
-@@ -661,7 +665,8 @@ const char *DeliverySystems[] = {
+@@ -339,8 +346,43 @@ bool cDvbTuner::Locked(int TimeoutMs)
+   return tunerStatus >= tsLocked;
+ }
+ 
++bool cDvbTuner::SetIdle(bool Idle)
++{
++  if (Idle)
++     return CloseFrontend();
++  return OpenFrontend();
++}
++
++bool cDvbTuner::OpenFrontend(void)
++{
++  if (fd_frontend >= 0)
++     return true;
++  cMutexLock MutexLock(&mutex);
++  fd_frontend = cDvbDevice::DvbOpen(DEV_DVB_FRONTEND, adapter, frontend, O_RDWR | O_NONBLOCK);
++  if (fd_frontend < 0)
++     return false;
++  //XXX modifiy if you use lnb-sharing-patch
++  if (frontendType == SYS_DVBS || frontendType == SYS_DVBS2)
++     CHECK(ioctl(fd_frontend, FE_SET_VOLTAGE, SEC_VOLTAGE_13)); // must explicitly turn on LNB power
++  return true;
++}
++
++bool cDvbTuner::CloseFrontend(void)
++{
++  if (fd_frontend < 0)
++     return true;
++  cMutexLock MutexLock(&mutex);
++  close(fd_frontend);
++  fd_frontend = -1;
++  tunerStatus = tsIdle;
++  newSet.Broadcast();
++  return true;
++}
++
+ bool cDvbTuner::GetFrontendStatus(fe_status_t &Status, int TimeoutMs)
+ {
++  if (!OpenFrontend())
++     return false;
+   if (TimeoutMs) {
+      cPoller Poller(fd_frontend);
+      if (Poller.Poll(TimeoutMs)) {
+@@ -367,6 +409,8 @@ static unsigned int FrequencyToHz(unsigned int f)
+ 
+ bool cDvbTuner::SetFrontend(void)
+ {
++  if (!OpenFrontend())
++     return false;
+ #define MAXFRONTENDCMDS 16
+ #define SETCMD(c, d) { Frontend[CmdSeq.num].cmd = (c);\
+                        Frontend[CmdSeq.num].u.data = (d);\
+@@ -526,9 +570,11 @@ void cDvbTuner::Action(void)
+   bool LostLock = false;
+   fe_status_t Status = (fe_status_t)0;
+   while (Running()) {
+-        fe_status_t NewStatus;
+-        if (GetFrontendStatus(NewStatus, 10))
+-           Status = NewStatus;
++        if (!dvbdevice->IsIdle()) {
++           fe_status_t NewStatus;
++           if (GetFrontendStatus(NewStatus, 10))
++              Status = NewStatus;
++           }
+         cMutexLock MutexLock(&mutex);
+         switch (tunerStatus) {
+           case tsIdle:
+@@ -661,7 +707,8 @@ const char *DeliverySystems[] = {
    NULL
    };
  
@@ -410,7 +515,7 @@ index f32b350..df2e679 100644
  {
    adapter = Adapter;
    frontend = Frontend;
-@@ -678,7 +683,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
+@@ -678,7 +725,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
  
    fd_ca = DvbOpen(DEV_DVB_CA, adapter, frontend, O_RDWR);
    if (fd_ca >= 0)
@@ -419,7 +524,7 @@ index f32b350..df2e679 100644
  
    // The DVR device (will be opened and closed as needed):
  
-@@ -718,7 +723,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
+@@ -718,7 +765,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
          else
             p = (char *)"unknown modulations";
          isyslog("frontend %d/%d provides %s with %s (\"%s\")", adapter, frontend, DeliverySystems[frontendType], p, frontendInfo.name);
@@ -428,11 +533,43 @@ index f32b350..df2e679 100644
          }
       }
    else
+@@ -823,6 +870,22 @@ bool cDvbDevice::Ready(void)
+   return true;
+ }
+ 
++bool cDvbDevice::SetIdleDevice(bool Idle, bool TestOnly)
++{
++  if (TestOnly)
++     return true;
++  if (Idle)
++     StopSectionHandler();
++  else
++     StartSectionHandler();
++  if (!dvbTuner->SetIdle(Idle)) {
++     if (Idle)
++        StartSectionHandler();
++     return false;
++     }
++  return true;
++}
++
+ bool cDvbDevice::HasCi(void)
+ {
+   return ciAdapter;
 diff --git a/dvbdevice.h b/dvbdevice.h
-index ff606fd..0ac3a24 100644
+index ff606fd..f941499 100644
 --- a/dvbdevice.h
 +++ b/dvbdevice.h
-@@ -123,7 +123,7 @@ private:
+@@ -102,7 +102,7 @@ class cDvbTuner;
+ /// The cDvbDevice implements a DVB device which can be accessed through the Linux DVB driver API.
+ 
+ class cDvbDevice : public cDevice {
+-protected:
++public:
+   static cString DvbName(const char *Name, int Adapter, int Frontend);
+   static int DvbOpen(const char *Name, int Adapter, int Frontend, int Mode, bool ReportError = false);
+ private:
+@@ -123,10 +123,12 @@ private:
    fe_delivery_system frontendType;
    int fd_dvr, fd_ca;
  public:
@@ -441,3 +578,21 @@ index ff606fd..0ac3a24 100644
    virtual ~cDvbDevice();
    virtual bool Ready(void);
  
++  virtual bool SetIdleDevice(bool Idle, bool TestOnly);
++
+ // Common Interface facilities:
+ 
+ private:
+diff --git a/eitscan.c b/eitscan.c
+index 2b43e71..ff5e3e4 100644
+--- a/eitscan.c
++++ b/eitscan.c
+@@ -143,7 +143,7 @@ void cEITScanner::Process(void)
+            bool AnyDeviceSwitched = false;
+            for (int i = 0; i < cDevice::NumDevices(); i++) {
+                cDevice *Device = cDevice::GetDevice(i);
+-               if (Device) {
++               if (Device && Device->CanScanForEPG()) {
+                   for (cScanData *ScanData = scanList->First(); ScanData; ScanData = scanList->Next(ScanData)) {
+                       const cChannel *Channel = ScanData->GetChannel();
+                       if (Channel) {
