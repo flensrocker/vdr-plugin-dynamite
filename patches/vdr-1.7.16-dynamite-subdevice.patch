@@ -242,7 +242,7 @@ index 681049b..356fb76 100644
 +  DynamicDeviceProbes.Del(this, false);
 +}
 diff --git a/device.h b/device.h
-index cb3bc2c..9722bfd 100644
+index cb3bc2c..64c4c36 100644
 --- a/device.h
 +++ b/device.h
 @@ -163,7 +163,6 @@ private:
@@ -312,7 +312,7 @@ index cb3bc2c..9722bfd 100644
 +  bool IsSubDevice(void) const { return (parentDevice != NULL); }
 +  bool HasSubDevice(void) const { return (subDevice != NULL); }
 +  cDevice *SubDevice(void) const { return subDevice; }
-+  bool IsIdle(void) const { return isIdle; }
++  bool IsIdle(void) const { if (parentDevice) return parentDevice->IsIdle(); return isIdle; }
 +  bool SetIdle(bool Idle);
 +  virtual bool SetIdleDevice(bool Idle, bool TestOnly) { return false; }
 +         ///< Called by SetIdle
@@ -385,7 +385,7 @@ index 5289bbd..ea54bdb 100644
  
  int cDvbCiAdapter::Read(uint8_t *Buffer, int MaxLength)
 diff --git a/dvbdevice.c b/dvbdevice.c
-index f32b350..e33301a 100644
+index f32b350..2c2f459 100644
 --- a/dvbdevice.c
 +++ b/dvbdevice.c
 @@ -259,6 +259,7 @@ private:
@@ -396,10 +396,11 @@ index f32b350..e33301a 100644
    int tuneTimeout;
    int lockTimeout;
    time_t lastTimeoutReport;
-@@ -269,25 +270,29 @@ private:
+@@ -269,30 +270,37 @@ private:
    cMutex mutex;
    cCondVar locked;
    cCondVar newSet;
++  bool isIdle;
 +  bool OpenFrontend(void);
 +  bool CloseFrontend(void);
    bool GetFrontendStatus(fe_status_t &Status, int TimeoutMs = 0);
@@ -414,6 +415,7 @@ index f32b350..e33301a 100644
    void Set(const cChannel *Channel);
    bool Locked(int TimeoutMs = 0);
 +  bool SetIdle(bool Idle);
++  bool IsIdle(void) const { return isIdle; }
    };
  
 -cDvbTuner::cDvbTuner(int Device, int Fd_Frontend, int Adapter, int Frontend, fe_delivery_system FrontendType)
@@ -428,7 +430,13 @@ index f32b350..e33301a 100644
    tuneTimeout = 0;
    lockTimeout = 0;
    lastTimeoutReport = 0;
-@@ -305,6 +310,8 @@ cDvbTuner::~cDvbTuner()
+   diseqcCommands = NULL;
+   tunerStatus = tsIdle;
++  isIdle = false;
+   if (frontendType == SYS_DVBS || frontendType == SYS_DVBS2)
+      CHECK(ioctl(fd_frontend, FE_SET_VOLTAGE, SEC_VOLTAGE_13)); // must explicitly turn on LNB power
+   SetDescription("tuner on frontend %d/%d", adapter, frontend);
+@@ -305,6 +313,8 @@ cDvbTuner::~cDvbTuner()
    newSet.Broadcast();
    locked.Broadcast();
    Cancel(3);
@@ -437,12 +445,15 @@ index f32b350..e33301a 100644
  }
  
  bool cDvbTuner::IsTunedTo(const cChannel *Channel) const
-@@ -339,8 +346,43 @@ bool cDvbTuner::Locked(int TimeoutMs)
+@@ -339,8 +349,47 @@ bool cDvbTuner::Locked(int TimeoutMs)
    return tunerStatus >= tsLocked;
  }
  
 +bool cDvbTuner::SetIdle(bool Idle)
 +{
++  if (isIdle == Idle)
++     return true;
++  isIdle = Idle;
 +  if (Idle)
 +     return CloseFrontend();
 +  return OpenFrontend();
@@ -459,6 +470,7 @@ index f32b350..e33301a 100644
 +  //XXX modifiy if you use lnb-sharing-patch
 +  if (frontendType == SYS_DVBS || frontendType == SYS_DVBS2)
 +     CHECK(ioctl(fd_frontend, FE_SET_VOLTAGE, SEC_VOLTAGE_13)); // must explicitly turn on LNB power
++  isIdle = false;
 +  return true;
 +}
 +
@@ -467,10 +479,10 @@ index f32b350..e33301a 100644
 +  if (fd_frontend < 0)
 +     return true;
 +  cMutexLock MutexLock(&mutex);
-+  close(fd_frontend);
-+  fd_frontend = -1;
 +  tunerStatus = tsIdle;
 +  newSet.Broadcast();
++  close(fd_frontend);
++  fd_frontend = -1;
 +  return true;
 +}
 +
@@ -481,7 +493,7 @@ index f32b350..e33301a 100644
    if (TimeoutMs) {
       cPoller Poller(fd_frontend);
       if (Poller.Poll(TimeoutMs)) {
-@@ -367,6 +409,8 @@ static unsigned int FrequencyToHz(unsigned int f)
+@@ -367,6 +416,8 @@ static unsigned int FrequencyToHz(unsigned int f)
  
  bool cDvbTuner::SetFrontend(void)
  {
@@ -490,14 +502,14 @@ index f32b350..e33301a 100644
  #define MAXFRONTENDCMDS 16
  #define SETCMD(c, d) { Frontend[CmdSeq.num].cmd = (c);\
                         Frontend[CmdSeq.num].u.data = (d);\
-@@ -526,9 +570,11 @@ void cDvbTuner::Action(void)
+@@ -526,9 +577,11 @@ void cDvbTuner::Action(void)
    bool LostLock = false;
    fe_status_t Status = (fe_status_t)0;
    while (Running()) {
 -        fe_status_t NewStatus;
 -        if (GetFrontendStatus(NewStatus, 10))
 -           Status = NewStatus;
-+        if (!dvbdevice->IsIdle()) {
++        if (!isIdle) {
 +           fe_status_t NewStatus;
 +           if (GetFrontendStatus(NewStatus, 10))
 +              Status = NewStatus;
@@ -505,7 +517,7 @@ index f32b350..e33301a 100644
          cMutexLock MutexLock(&mutex);
          switch (tunerStatus) {
            case tsIdle:
-@@ -661,7 +707,8 @@ const char *DeliverySystems[] = {
+@@ -661,7 +714,8 @@ const char *DeliverySystems[] = {
    NULL
    };
  
@@ -515,7 +527,7 @@ index f32b350..e33301a 100644
  {
    adapter = Adapter;
    frontend = Frontend;
-@@ -678,7 +725,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
+@@ -678,7 +732,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
  
    fd_ca = DvbOpen(DEV_DVB_CA, adapter, frontend, O_RDWR);
    if (fd_ca >= 0)
@@ -524,7 +536,7 @@ index f32b350..e33301a 100644
  
    // The DVR device (will be opened and closed as needed):
  
-@@ -718,7 +765,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
+@@ -718,7 +772,7 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
          else
             p = (char *)"unknown modulations";
          isyslog("frontend %d/%d provides %s with %s (\"%s\")", adapter, frontend, DeliverySystems[frontendType], p, frontendInfo.name);
@@ -533,7 +545,7 @@ index f32b350..e33301a 100644
          }
       }
    else
-@@ -823,6 +870,22 @@ bool cDvbDevice::Ready(void)
+@@ -823,6 +877,27 @@ bool cDvbDevice::Ready(void)
    return true;
  }
  
@@ -553,11 +565,16 @@ index f32b350..e33301a 100644
 +  return true;
 +}
 +
++bool cDvbDevice::CanScanForEPG(void) const
++{
++  return !IsIdle() && !dvbTuner->IsIdle();
++}
++
  bool cDvbDevice::HasCi(void)
  {
    return ciAdapter;
 diff --git a/dvbdevice.h b/dvbdevice.h
-index ff606fd..f941499 100644
+index ff606fd..7ca1a87 100644
 --- a/dvbdevice.h
 +++ b/dvbdevice.h
 @@ -102,7 +102,7 @@ class cDvbTuner;
@@ -569,7 +586,7 @@ index ff606fd..f941499 100644
    static cString DvbName(const char *Name, int Adapter, int Frontend);
    static int DvbOpen(const char *Name, int Adapter, int Frontend, int Mode, bool ReportError = false);
  private:
-@@ -123,10 +123,12 @@ private:
+@@ -123,10 +123,13 @@ private:
    fe_delivery_system frontendType;
    int fd_dvr, fd_ca;
  public:
@@ -579,6 +596,7 @@ index ff606fd..f941499 100644
    virtual bool Ready(void);
  
 +  virtual bool SetIdleDevice(bool Idle, bool TestOnly);
++  virtual bool CanScanForEPG(void) const;
 +
  // Common Interface facilities:
  

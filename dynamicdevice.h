@@ -35,6 +35,7 @@ public:
   static eDynamicDeviceReturnCode AttachDevice(const char *DevPath);
   static eDynamicDeviceReturnCode DetachDevice(const char *DevPath);
   static eDynamicDeviceReturnCode SetLockDevice(const char *DevPath, bool Lock);
+  static eDynamicDeviceReturnCode SetIdle(const char *DevPath, bool Idle);
   static eDynamicDeviceReturnCode SetGetTSTimeout(const char *DevPath, int Seconds);
   static void SetDefaultGetTSTimeout(int Seconds);
   static eDynamicDeviceReturnCode SetGetTSTimeoutHandlerArg(const char *DevPath, const char *Arg);

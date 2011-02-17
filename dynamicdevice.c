@@ -216,6 +216,27 @@ eDynamicDeviceReturnCode cDynamicDevice::SetLockDevice(const char *DevPath, bool
   return ddrcSuccess;
 }
 
+eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
+{
+  if (!DevPath)
+     return ddrcNotSupported;
+
+  cMutexLock lock(&arrayMutex);
+  int freeIndex = -1;
+  int index = -1;
+  if (isnumber(DevPath))
+     index = strtol(DevPath, NULL, 10) - 1;
+  else
+     index = IndexOf(DevPath, freeIndex);
+
+  if ((index < 0) || (index >= numDynamicDevices))
+     return ddrcNotFound;
+
+  ((cDevice*)dynamicdevice[index])->SetIdle(Idle);
+  isyslog("dynamite: set device %s to %s", DevPath, (Idle ? "idle" : "not idle"));
+  return ddrcSuccess;
+}
+
 eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeout(const char *DevPath, int Seconds)
 {
   if (!DevPath || (Seconds < 0))

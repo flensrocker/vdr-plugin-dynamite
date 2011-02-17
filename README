@@ -105,6 +105,15 @@ UNLD /dev/path/to/device
     Remove the lock of the device so it can be detached
     alternate command: UnlockDevice
 
+"dynamite-SetIdle-v0.1"
+SetIdle /dev/path/to/device
+    Try to set the device to idle so it won't be used by epg-scan
+    and can close all its handles
+
+"dynamite-SetNotIdle-v0.1"
+SetNotIdle /dev/path/to/device
+    Revoke the idle state of the device
+
 (no Service-interface)
 LSTD
     Lists all devices managed by this plugin. The first column is an id,

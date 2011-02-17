@@ -93,3 +93,8 @@ VDR Plugin 'dynamite' Revision History
 - add parsing of udev-property "dynamite_timeout_handler_arg"
 - add "dynamite.GetTSTimeoutHandler = /path/to/program" to setup.conf
 - call external program on GetTS-timeout
+
+2011-02-18: Version 0.0.5i
+
+- add idle option to cDevice, "idle"-devices must close all their handles.
+  They are ignored by the epg-scan.

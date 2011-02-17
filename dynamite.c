@@ -219,6 +219,16 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
         cDynamicDevice::SetLockDevice((const char*)Data, false);
      return true;
      }
+  if (strcmp(Id, "dynamite-SetIdle-v0.1") == 0) {
+     if (Data != NULL)
+        cDynamicDevice::SetIdle((const char*)Data, true);
+     return true;
+     }
+  if (strcmp(Id, "dynamite-SetNotIdle-v0.1") == 0) {
+     if (Data != NULL)
+        cDynamicDevice::SetIdle((const char*)Data, false);
+     return true;
+     }
   if (strcmp(Id, "dynamite-SetGetTSTimeout-v0.1") == 0) {
      if (Data != NULL) {
         int replyCode;
@@ -277,12 +287,16 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "    e.g. SCND '/dev/dvb/adapter*/frontend*'\n"
     "    alternate command: ScanDevices",
     "LCKD /dev/path/to/device\n"
-    "    alternate command: LockDevice",
     "    Lock the device so it can't be detached\n"
     "    alternate command: LockDevice",
     "UNLD /dev/path/to/device\n"
     "    Remove the lock of the device so it can be detached\n"
     "    alternate command: UnlockDevice",
+    "SetIdle /dev/path/to/device\n"
+    "    Try to set the device to idle so it won't be used by epg-scan\n"
+    "    and can close all its handles",
+    "SetNotIdle /dev/path/to/device\n"
+    "    Revoke the idle state of the device",
     "LSTD\n"
     "    Lists all devices managed by this plugin. The first column is an id,\n"
     "    the second column is the devicepath passed with ATTD\n"
@@ -352,6 +366,28 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
         {
           ReplyCode = 550;
           return cString::sprintf("can't %slock device %s and I don't know why...", (lock == 2) ? "un" : "", Option);
+        }
+       }
+     }
+
+  int idle = 0;
+  if (strcasecmp(Command, "SetIdle") == 0)
+     idle = 1;
+  else if (strcasecmp(Command, "SetNotIdle") == 0)
+     idle = 2;
+  if (idle > 0) {
+     switch (cDynamicDevice::SetIdle(Option, (idle == 1))) {
+       case ddrcSuccess:
+         return cString::sprintf("device %s is %s", Option, (idle == 1 ? "idle" : "not idle"));
+       case ddrcNotFound:
+        {
+          ReplyCode = 550;
+          return cString::sprintf("device %s not found", Option);
+        }
+       default:
+        {
+          ReplyCode = 550;
+          return cString::sprintf("can't set device %s to %s and I don't know why...", Option, (idle == 1 ? "idle" : "not idle"));
         }
        }
      }
