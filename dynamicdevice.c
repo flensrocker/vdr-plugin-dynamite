@@ -490,14 +490,14 @@ int cDynamicDevice::NumProvidedSystems(void) const
 
 const cChannel *cDynamicDevice::GetCurrentlyTunedTransponder(void) const
 {
-  if (subDevice)
+  if (!IsIdle() && subDevice)
      return subDevice->GetCurrentlyTunedTransponder();
   return cDevice::GetCurrentlyTunedTransponder();
 }
 
 bool cDynamicDevice::IsTunedToTransponder(const cChannel *Channel)
 {
-  if (subDevice)
+  if (!IsIdle() && subDevice)
      return subDevice->IsTunedToTransponder(Channel);
   return cDevice::IsTunedToTransponder(Channel);
 }
