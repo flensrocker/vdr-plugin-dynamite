@@ -251,6 +251,29 @@ void cDynamicDevice::SetDefaultGetTSTimeout(int Seconds)
      }
 }
 
+eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeoutHandlerArg(const char *DevPath, const char *Arg)
+{
+  if (!DevPath || !Arg)
+     return ddrcNotSupported;
+
+  cMutexLock lock(&arrayMutex);
+  int freeIndex = -1;
+  int index = -1;
+  if (isnumber(DevPath))
+     index = strtol(DevPath, NULL, 10) - 1;
+  else
+     index = IndexOf(DevPath, freeIndex);
+
+  if ((index < 0) || (index >= numDynamicDevices))
+     return ddrcNotFound;
+
+  if (dynamicdevice[index]->getTSTimeoutHandlerArg)
+     delete dynamicdevice[index]->getTSTimeoutHandlerArg;
+  dynamicdevice[index]->getTSTimeoutHandlerArg = new cString(Arg);
+  isyslog("dynamite: set GetTSTimeoutHandlerArg on device %s to %s", DevPath, Arg);
+  return ddrcSuccess;
+}
+
 bool cDynamicDevice::IsAttached(const char *DevPath)
 {
   cMutexLock lock(&arrayMutex);
@@ -262,6 +285,7 @@ bool cDynamicDevice::IsAttached(const char *DevPath)
 cDynamicDevice::cDynamicDevice()
 :index(-1)
 ,devpath(NULL)
+,getTSTimeoutHandlerArg(NULL)
 ,isDetachable(true)
 ,getTSTimeout(defaultGetTSTimeout)
 ,restartSectionHandler(false)
@@ -278,6 +302,9 @@ cDynamicDevice::cDynamicDevice()
 cDynamicDevice::~cDynamicDevice()
 {
   DeleteSubDevice();
+  if (getTSTimeoutHandlerArg)
+     delete getTSTimeoutHandlerArg;
+  getTSTimeoutHandlerArg = NULL;
 }
 
 void cDynamicDevice::DeleteSubDevice()
@@ -715,6 +742,10 @@ bool cDynamicDevice::GetTSPacket(uchar *&Data)
                  d = **devpath;
               esyslog("dynamite: device %s hasn't delivered any data for %d seconds, it will be detached", d, getTSTimeout);
               cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, *devpath);
+              const char *timeoutHandlerArg = *devpath;
+              if (getTSTimeoutHandlerArg)
+                 timeoutHandlerArg = **getTSTimeoutHandlerArg;
+              cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-CallGetTSTimeoutHandler-v0.1 %s", timeoutHandlerArg));
               return false;
               }
            }

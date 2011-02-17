@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5g";
+static const char *VERSION        = "0.0.5h";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -51,6 +51,7 @@ public:
 class cPluginDynamite : public cPlugin {
 private:
   cDynamiteDeviceProbe *probe;
+  cString *getTSTimeoutHandler;
 public:
   cPluginDynamite(void);
   virtual ~cPluginDynamite();
@@ -75,6 +76,7 @@ public:
   };
 
 cPluginDynamite::cPluginDynamite(void)
+:getTSTimeoutHandler(NULL)
 {
   cDynamicDevice::dynamite = this;
   cDynamicDevice::dvbprobe = new cDynamiteDvbDeviceProbe;
@@ -94,6 +96,8 @@ cPluginDynamite::~cPluginDynamite()
      delete cDynamicDevice::dvbprobe;
   if (probe)
      delete probe;
+  if (getTSTimeoutHandler != NULL)
+     delete getTSTimeoutHandler;
 }
 
 const char *cPluginDynamite::CommandLineHelp(void)
@@ -174,6 +178,15 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
   int replyCode;
   if (strcasecmp(Name, "DefaultGetTSTimeout") == 0)
      SVDRPCommand("SetDefaultGetTSTimeout", Value, replyCode);
+  if (strcasecmp(Name, "GetTSTimeoutHandler") == 0) {
+     if (getTSTimeoutHandler != NULL)
+        delete getTSTimeoutHandler;
+     getTSTimeoutHandler = NULL;
+     if (Value != NULL) {
+        getTSTimeoutHandler = new cString(Value);
+        isyslog("dynamite: installed GetTSTimeoutHandler %s", **getTSTimeoutHandler);
+        }
+     }
   else
      return false;
   return true;
@@ -224,6 +237,20 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
      if (Data != NULL) {
         int replyCode;
         SVDRPCommand("AddUdevMonitor", (const char*)Data, replyCode);
+        }
+     return true;
+     }
+  if (strcmp(Id, "dynamite-CallGetTSTimeoutHandler-v0.1") == 0) {
+     if (Data != NULL) {
+        int replyCode;
+        SVDRPCommand("CallGetTSTimeoutHandler", (const char*)Data, replyCode);
+        }
+     return true;
+     }
+  if (strcmp(Id, "dynamite-SetGetTSTimeoutHandlerArg-v0.1") == 0) {
+     if (Data != NULL) {
+        int replyCode;
+        SVDRPCommand("SetGetTSTimeoutHandlerArg", (const char*)Data, replyCode);
         }
      return true;
      }
@@ -280,6 +307,10 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "    AddUdevMonitor video4linux /dev/video\n"
     "    (this is what pvrinput uses)\n"
     "    alternate command: AddUdevMonitor",
+    "SetGetTSTimeoutHandlerArg /dev/path/to/device arg\n"
+    "    Sets the argument for the timout handler program.",
+    "CallGetTSTimeoutHandler arg\n"
+    "    Calls the timout handler program with the given arguments.",
     NULL
     };
   return HelpPages;
@@ -370,6 +401,40 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
         return msg;
         }
      }
+
+  if (strcasecmp(Command, "CallGetTSTimeoutHandler") == 0) {
+     if (getTSTimeoutHandler == NULL) {
+        cString msg = cString::sprintf("no GetTSTimeoutHandler configured, arg: %s", Option);
+        isyslog("dynamite: %s", *msg);
+        return cString("no GetTSTimeoutHandler configured, arg: %s", Option);
+        }
+     isyslog("dynamite: executing %s %s", **getTSTimeoutHandler, Option);
+     if (system(*cString::sprintf("%s %s", **getTSTimeoutHandler, Option)) < 0) {
+        cString msg = cString::sprintf("error (%d) on executing %s %s", errno, **getTSTimeoutHandler, Option);
+        isyslog("dynamite: %s", *msg);
+        return msg;
+        }
+     cString msg = cString::sprintf("success on executing %s %s", **getTSTimeoutHandler, Option);
+     isyslog("dynamite: %s", *msg);
+     return msg;
+     }
+
+  if (strcasecmp(Command, "SetGetTSTimeoutHandlerArg") == 0) {
+     cString ret;
+     int len = strlen(Option);
+     if (len > 0) {
+        cString devPath(Option);
+        const char *arg = strchr(*devPath, ' ');
+        if (arg && (arg < (*devPath + len + 1))) {
+           devPath.Truncate(arg - *devPath);
+           arg++;
+           cDynamicDevice::SetGetTSTimeoutHandlerArg(*devPath, arg);
+           ret = cString::sprintf("set GetTS-Timeout-Handler-Arg on device %s to %s", *devPath, arg);
+           }
+        }
+     return ret;
+     }
+
   return NULL;
 }
 

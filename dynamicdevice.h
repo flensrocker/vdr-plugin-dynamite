@@ -37,10 +37,12 @@ public:
   static eDynamicDeviceReturnCode SetLockDevice(const char *DevPath, bool Lock);
   static eDynamicDeviceReturnCode SetGetTSTimeout(const char *DevPath, int Seconds);
   static void SetDefaultGetTSTimeout(int Seconds);
+  static eDynamicDeviceReturnCode SetGetTSTimeoutHandlerArg(const char *DevPath, const char *Arg);
   static bool IsAttached(const char *DevPath);
 private:
   int index;
   cString *devpath;
+  cString *getTSTimeoutHandlerArg;
   bool     isDetachable;
   time_t   getTSWatchdog;
   int      getTSTimeout;
