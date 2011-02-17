@@ -137,11 +137,20 @@ ADUM subsystem begin-of-devnode
     (this is what pvrinput uses)
     alternate command: AddUdevMonitor
 
+"dynamite-SetGetTSTimeoutHandlerArg-v0.1"
+SetGetTSTimeoutHandlerArg /dev/path/to/device arg
+    Sets the argument for the timout handler program.
+
+"dynamite-CallGetTSTimeoutHandler-v0.1"
+CallGetTSTimeoutHandler arg
+    Calls the timout handler program with the given arguments.
+
 Don't forget to prefix them with "plug dynamite"...
 
 Parameters in setup.conf
 ------------------------
 dynamite.DefaultGetTSTimeout = 0
+dynamite.GetTSTimeoutHandler = /path/to/program
 
 "GetTS" watchdog
 ----------------
@@ -160,7 +169,11 @@ Add a rule which sets with ENV{dynamite_timeout}="10" the needed timeout value.
 The udev-monitor in dynamite will evaluate this device-property.
 For now this only works for attaching via udev-monitor!
 example for udev rule:
-ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend", ENV{dynamite_timeout}="10"
+ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend", ENV{dynamite_timeout}="10", ENV{dynamite_timeout_handler_arg}="%k"
+
+After the device is detached and dynamite.GetTSTimeoutHandler in setup.conf is set
+to a path, this program is called. If the udev-property "dynamite_timeout_handler_arg"
+is not present the devpath is provided as argument, with which the device was attached.
 
 Known issues
 ------------
@@ -173,4 +186,5 @@ me how to do this...
 TODO
 ----
 * implement interface for other plugins to use the udev monitor
+* enumerate udev-properties on devices found at startup
 * implement some OSD functionality for detaching, locking etc.
