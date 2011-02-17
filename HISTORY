@@ -84,17 +84,17 @@ VDR Plugin 'dynamite' Revision History
 - add new command to cDynamicDeviceProbe to call dynamite-Service (no ABI changes)
 - extend udev-monitor with parsing of a timeout-value set by some udev rule
 
-2011-02-17: Version 0.0.5g
+2011-02-16: Version 0.0.5g
 
 - modify vdr-patch because zapping could interrupt recordings
 
-2011-02-18: Version 0.0.5h
+2011-02-17: Version 0.0.5h
 
 - add parsing of udev-property "dynamite_timeout_handler_arg"
 - add "dynamite.GetTSTimeoutHandler = /path/to/program" to setup.conf
 - call external program on GetTS-timeout
 
-2011-02-18: Version 0.0.5i
+2011-02-17: Version 0.0.5i
 
 - add idle option to cDevice, "idle"-devices must close all their handles.
   They are ignored by the epg-scan.
