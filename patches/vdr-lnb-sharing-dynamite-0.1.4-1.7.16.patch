@@ -1,0 +1,782 @@
+diff --git a/HISTORY.LNBshare b/HISTORY.LNBshare
+new file mode 100644
+index 0000000..d6eeb7f
+--- /dev/null
++++ b/HISTORY.LNBshare
+@@ -0,0 +1,42 @@
++configurableLNBshare Revision History
++
++Version for VDR 1.4.3 
++
++- configurableLNBshare-VDR_1.4.3.patch from Matthias LÃ¶tzke (http://lÃ¶tzke.de/vdr.html)
++
++2010-04-10: Version for VDR 1.7.14
++- Created HISTORY.LNBshare
++- Created README.LNBshare
++- Fixed possible buffer overflow in cMenuSetupLNB::Setup(void)
++- Ignore all non-DVB-S devices when checking for possible conflicts.
++- Use the 'actual' device instead of the 'primary' device as device that is used as reciever for live viewing. This adds support for 'other' output devices than a FF card like xine. Based on a patch from CR7 at vdr-portal.de
++- Adept to  VDR 1.7.14. Support the new diseqc feature introduced with VDR 1.7.13: 'Added device definitions to the diseqc.conf file format, so that certain satellite positions can be limited to a given list of devices'.
++  
++2010-11-13:
++- Fix: Devices sharing same LNB don't switch channel on main channel switch (thanks to hivdr @ vdr-portal.de for reporting the bug and spockele @ vdr-portal.de and hopsi @ vdr-portal.de for testing the correction)
++- Fix: In LOG, device numbering is now as in VDR: Starting from 1, ...
++- Fix: Encoding of german umlaut in "DVB-EmpfÃ¤nger %d nutzt LNB Nr"
++
++2010-11-28:
++- Fix: Device numbering in message 'LNB or DiSEq conflict with device ...'.
++- Fix: Numbering of LNBs not using SAT
++
++2010-12-25: Version 0.1.0 for VDR version 1.7.16
++- Rename the patch to include patch version number (vdr-lnb-sharing-0.1.0-1.7.16.patch)
++- Write patch version number to log file (if logging is switched on).
++- Adept to  VDR 1.7.16
++
++2011-02-06 Version 0.1.1 for VDR version 1.7.16
++- Fix: If several DVB devices share one LNB, only the first of these devises will send signals like 22kHz. See README.LNBshare for details.
++  Thanks to Uwe (Licherkette @ vdr-portal.de) for finding and analyzing the error and testing the correction.
++- README.LNBshare: Include warning about 1.3 FF cards with buggy Loop-Through that might result in destruction of LNBP-Chips if the Loop-Through is used
++- Fix: Log file: Numbering of 'LNBs' not connected to a SAT DVB card
++
++2011-02-08 Version 0.1.2 for VDR version 1.7.16
++- Change: Make it easier to apply this patch together with the dynamite-Plugin patch. Note: this is mostly for maintainers of distributions and multi-patches. It will (must probably) not be possible for devices added with dynamite to share LNBs. Some concept work is required for this: How can VDR uniquely identify a device? How can a user identify such a device on OSD?
++
++2011-02-16 Version 0.1.3 for VDR version 1.7.16
++- Fix an error that can occur if devices are explizitly specified (-D or --device) during start of VDR. Thanks to Lars (mini73 @ vdr-portal.de) for reporting this error.
++
++2011-02-18 Version 0.1.4 for VDR version 1.7.16
++- Fix: Short before a recording starts, the system switches between black screen and channel. If VPS is used, the recording will not even start. Thanks to urknall @ vdr-portal.de for reporting this error and Uwe (Licherkette @ vdr-portal.de) for providing a Log
+diff --git a/README.LNBshare b/README.LNBshare
+new file mode 100644
+index 0000000..1d624bf
+--- /dev/null
++++ b/README.LNBshare
+@@ -0,0 +1,32 @@
++Warning
++- At some 1.3 FF-Cards a voltage at the Loop-Through will destroy the LNBP-Chips of these cards. Please check the manual. If you are unsure or your card is affected, don't use the Loop-Through! Even if this patch avoids switching on the voltage in such a case, the patch might be buggy or wrong configured or ...
++
++Required hardware:
++- sat splitter like SVE 2-01 (reichelt.de). Make sure to have a sat splitter with built in diodes preventing any current in case of different voltage on the connected DVB cards.
++
++Settings (OSD)
++In VDR, if you select Settings -> LNB and have two or more devices that can recieve SAT channels, you can set the 'LNB Nr.' for each of these devices. Note:
++- All devices with an identical 'LNB Nr.' share the same LNB
++- The patch assumes that a device has always the same number. If you have more than two devices, you must make sure to load the drivers in a given order to make sure that each of the listed devices belongs always to the same card. If during setup, for example, your first DVB-S card is device 2 and your second DVB-S card is device 4 (device 1 and 3 are, for example, DVB-T cards) you must make sure that after reboot these stay the same: your first DVB-S card is device 2 and your second DVB-S card is device 4.
++- Signals (like DiSEqC, 22kHz, Voltage) are only sent by the first device if several devices share the same LNB. VDR will even switch on the LNB Voltage only on the first device. Note: This is not guarantied: If you use a Loop-Through, please see the warning in the README and make sure that the FF Card is the first card.
++
++DiSEqC Support:
++DiSEqC is supported, including the feature added in VDR 1.7.13: Added device definitions to the diseqc.conf file format, so that certain satellite positions can be limited to a given list of devices
++Note: Please ensure in diseqc.conf that all devices sharing one LNB have exactly the same satellite positions. The system will not check this, but, otherwise, the patch will not work correctly. This is not a restriction: obviously, if two devices share the same LNB, they can also receive the same satellite positions.
++
++Primary limit (Setup.PrimaryLimit):
++See MANUAL for a description: 'This is mainly useful for recordings that should take place only when there is nothing else to do, but should never keep the user from viewing stuff on the primary interface'
++In unpatched VDR, this seems to work with FF cards. For other output devices (for example vdr-xine), it probably won't work.
++Not fully supported by LNB sharing: If the primary device shares an LNB with device2, device2 might start a recording with priority < Setup.PrimaryLimit and force the primary device to an other channel.
++
++TODO / Missing:
++Intelligent assigning of timers to devices.
++Example: If you have 3 DVB-S cards and 2 of them share the same LNB, you can, in principle, record 2 channels in 'high' band and one in 'low' band. But, with this patch, this is not guaranteed. The DVB-S card with an own LNB might record one of the channels in high band. So, one of the other channels will not be recorded.
++Note:
++- Such intelligent scheduling is generally missing in VDR and would be also useful for 'mixed' systems with DVB-S and DVB-T cards as well as systems in which not all DVB-S cards can receive the same satellites.
++- I don't plan to implement this feature. Any volunteers?
++
++Hompage: http://projects.vdr-developer.org/projects/patch-lnbsharing . Please use this for bug reports. You can also create a new thread in http://www.vdr-portal.de , Developer->Patches for any questions.
++Git: The patch is available in http://projects.vdr-developer.org/git/?p=vdr-patch-lnbsharing.git
++
++License: The same license as for VDR applies. See file COPYING (in VDR sources) for details.
+diff --git a/config.c b/config.c
+index 73b11b1..c77d38b 100644
+--- a/config.c
++++ b/config.c
+@@ -399,6 +399,10 @@ cSetup::cSetup(void)
+   InitialVolume = -1;
+   ChannelsWrap = 0;
+   EmergencyExit = 1;
++//ML
++  VerboseLNBlog = 0;
++  for (int i = 0; i < MAXDEVICES; i++) CardUsesLnbNr[i] = i + 1;
++//ML-Ende
+ }
+ 
+ cSetup& cSetup::operator= (const cSetup &s)
+@@ -591,7 +595,23 @@ bool cSetup::Parse(const char *Name, const char *Value)
+   else if (!strcasecmp(Name, "ChannelsWrap"))        ChannelsWrap       = atoi(Value);
+   else if (!strcasecmp(Name, "EmergencyExit"))       EmergencyExit      = atoi(Value);
+   else
+-     return false;
++
++//ML
++  if (!strcasecmp(Name, "VerboseLNBlog")) VerboseLNBlog = atoi(Value);
++  else {
++    char tmp[20];
++    bool result = false;
++    for (int i = 1; i <= MAXDEVICES; i++) {
++      sprintf(tmp, "Card%dusesLNBnr", i);
++      if (!strcasecmp(Name, tmp)) {
++        CardUsesLnbNr[i - 1] = atoi(Value);
++        result = true;
++      }
++    }  
++     return result;
++  }
++//ML-Ende
++
+   return true;
+ }
+ 
+@@ -687,6 +707,17 @@ bool cSetup::Save(void)
+   Store("ChannelsWrap",       ChannelsWrap);
+   Store("EmergencyExit",      EmergencyExit);
+ 
++//ML
++  Store("VerboseLNBlog",       VerboseLNBlog);
++  char tmp[20];
++  if (cDevice::NumDevices() > 1) {
++     for (int i = 1; i <= cDevice::NumDevices(); i++) {
++        sprintf(tmp, "Card%dusesLNBnr", i);
++        Store(tmp, CardUsesLnbNr[i - 1]);
++     }
++  }
++//ML-Ende
++
+   Sort();
+ 
+   if (cConfig<cSetupLine>::Save()) {
+diff --git a/config.h b/config.h
+index 7c28d41..d101f43 100644
+--- a/config.h
++++ b/config.h
+@@ -291,6 +291,16 @@ public:
+   int InitialVolume;
+   int ChannelsWrap;
+   int EmergencyExit;
++
++//ML
++  #define LNB_SHARING_VERSION "0.1.4"
++  int VerboseLNBlog;
++  #define MAXDEVICES 16 // Since VDR 1.3.32 we can not #include "device.h" for MAXDEVICES anymore.
++                        // With this workaround a warning will be shown during compilation if
++                        // MAXDEVICES changes in device.h.
++  int CardUsesLnbNr[MAXDEVICES];
++//ML-Ende
++
+   int __EndData__;
+   cSetup(void);
+   cSetup& operator= (const cSetup &s);
+diff --git a/device.c b/device.c
+index 681049b..6eb8cd0 100644
+--- a/device.c
++++ b/device.c
+@@ -144,6 +144,31 @@ void cDevice::SetUseDevice(int n)
+      useDevice |= (1 << n);
+ }
+ 
++//ML
++void cDevice::SetLnbNr(void)
++{
++  for (int i = 0; i < numDevices; i++) {
++    device[i]->SetLnbNrFromSetup();
++  }
++}
++
++
++bool cDevice::IsLnbSendSignals(void)
++{
++  if (parentDevice)
++     return parentDevice->IsLnbSendSignals();
++  for (int i = 0; device[i] != this && i < numDevices; i++) {
++	if (device[i]->IsShareLnb(this) ) {
++	  isyslog("Device %d: will not send any signal (like 22kHz) to LNB as device %d will do this", cardIndex+1, device[i]->cardIndex + 1);
++	  return false;
++	}
++  }
++  isyslog("Device %d: will send signals (like 22kHz) to LNB nr. = %d ", cardIndex+1, LnbNr() );
++  return true;
++}
++
++//ML-Ende
++
+ int cDevice::NextCardIndex(int n)
+ {
+   if (n > 0) {
+@@ -263,6 +288,10 @@ cDevice *cDevice::GetDevice(const cChannel *Channel, int Priority, bool LiveView
+       for (int i = 0; i < numDevices; i++) {
+           if (device[i] == AvoidDevice)
+              continue; // this device shall be temporarily avoided
++          // LNB - Sharing
++          if (AvoidDevice && device[i]->IsShareAvoidDevice(Channel, AvoidDevice) )
++            continue; // this device shall be temporarily avoided
++          // LNB - Sharing END
+           if (Channel->Ca() && Channel->Ca() <= CA_DVB_MAX && Channel->Ca() != device[i]->CardIndex() + 1)
+              continue; // a specific card was requested, but not this one
+           if (NumUsableSlots && !CamSlots.Get(j)->Assign(device[i], true))
+@@ -283,10 +312,21 @@ cDevice *cDevice::GetDevice(const cChannel *Channel, int Priority, bool LiveView
+              imp <<= 1; imp |= device[i]->Receiving();                                                               // avoid devices that are receiving
+              imp <<= 4; imp |= GetClippedNumProvidedSystems(4, device[i]) - 1;                                       // avoid cards which support multiple delivery systems
+              imp <<= 1; imp |= device[i] == cTransferControl::ReceiverDevice();                                      // avoid the Transfer Mode receiver device
+-             imp <<= 8; imp |= min(max(device[i]->Priority() + MAXPRIORITY, 0), 0xFF);                               // use the device with the lowest priority (+MAXPRIORITY to assure that values -99..99 can be used)
++             // LNB - Sharing
++             int badPriority = device[i]->GetMaxBadPriority(Channel);
++             if (badPriority < 0 )                  // a device receiving with lower priority would need to be stopped
++             {
++                imp <<= 8; imp |= min(max(device[i]->Priority() + MAXPRIORITY, 0), 0xFF);                       // use the device with the lowest priority (+MAXPRIORITY to assure that values -99..99 can be used)
++             } else {
++                imp <<= 8; imp |= min(max(max(device[i]->Priority(), badPriority) + MAXPRIORITY, 0), 0xFF);          // use the device with the lowest priority (+MAXPRIORITY to assure that values -99..99 can be used)
++             }
++             // LNB - Sharing End
+              imp <<= 8; imp |= min(max((NumUsableSlots ? SlotPriority[j] : 0) + MAXPRIORITY, 0), 0xFF);              // use the CAM slot with the lowest priority (+MAXPRIORITY to assure that values -99..99 can be used)
+              imp <<= 1; imp |= ndr;                                                                                  // avoid devices if we need to detach existing receivers
+              imp <<= 1; imp |= device[i]->IsPrimaryDevice();                                                         // avoid the primary device
++             // LNB - Sharing
++             imp |= (badPriority == -1);                                                                               // avoid cards where the actual device needs to be switched
++             // LNB - Sharing End             
+              imp <<= 1; imp |= NumUsableSlots ? 0 : device[i]->HasCi();                                              // avoid cards with Common Interface for FTA channels
+              imp <<= 1; imp |= device[i]->HasDecoder();                                                              // avoid full featured cards
+              imp <<= 1; imp |= NumUsableSlots ? !ChannelCamRelations.CamDecrypt(Channel->GetChannelID(), j + 1) : 0; // prefer CAMs that are known to decrypt this channel
+@@ -602,7 +642,11 @@ bool cDevice::ProvidesTransponder(const cChannel *Channel) const
+ bool cDevice::ProvidesTransponderExclusively(const cChannel *Channel) const
+ {
+   for (int i = 0; i < numDevices; i++) {
+-      if (device[i] && device[i] != this && device[i]->ProvidesTransponder(Channel))
++
++//ML
++      if (device[i] && device[i] != this && device[i]->ProvidesTransponder(Channel) && device[i]->IsShareLnb(this)  )
++//ML-Ende
++
+          return false;
+       }
+   return true;
+@@ -684,6 +728,71 @@ bool cDevice::SwitchChannel(int Direction)
+   return result;
+ }
+ 
++// ML
++cDevice *cDevice::GetBadDevice(const cChannel *Channel)
++{
++  if (parentDevice)
++     return parentDevice->GetBadDevice(Channel);
++  if(!cSource::IsSat(Channel->Source())) return NULL;  // no conflict if the new channel is not on sat
++  if(!ProvidesSource(cSource::stSat)) return NULL;     // no conflict if this device is not on sat
++  for (int i = 0; i < numDevices; i++) {
++    if (this != device[i] && device[i]->IsShareLnb(this) &&  device[i]->IsLnbConflict(Channel) ) {
++    	// there is a conflict between device[i] and 'this' if we tune this to Channel
++      if (Setup.VerboseLNBlog) {
++        isyslog("LNB %d: Device check for channel %d on device %d. LNB or DiSEq conflict with device %d", LnbNr(), Channel->Number(), this->cardIndex + 1, device[i]->cardIndex + 1);
++      }
++      return device[i];
++    }
++  }
++  if (Setup.VerboseLNBlog) { 
++    isyslog("LNB %d: Device check for channel %d on device %d. OK", LnbNr(), Channel->Number(), this->cardIndex + 1);
++  }
++  return NULL;
++}
++
++int cDevice::GetMaxBadPriority(const cChannel *Channel) const
++{                                
++  if (parentDevice)
++     return parentDevice->GetMaxBadPriority(Channel);
++  if(!cSource::IsSat(Channel->Source())) return -2;  // no conflict if the new channel is not on sat
++  if(!ProvidesSource(cSource::stSat)) return -2;     // no conflict if this device is not on sat
++
++  int maxBadPriority = -2;
++  for (int i = 0; i < numDevices; i++) {
++    if (this != device[i] && device[i]->IsShareLnb(this) && device[i]->IsLnbConflict(Channel) ) {
++    	// there is a conflict between device[i] and 'this' if we tune this to Channel
++    	  if (Setup.VerboseLNBlog) {
++            isyslog("LNB %d: Conflict for device %d, priority of conflicting device: %d", LnbNr(), device[i]->cardIndex + 1, device[i]->Priority());
++    	  }
++      if (device[i]->Receiving() && device[i]->Priority() > maxBadPriority) maxBadPriority = device[i]->Priority();
++      if (device[i] == ActualDevice() && maxBadPriority < -1 ) maxBadPriority = -1;
++    }
++  }
++
++  if (Setup.VerboseLNBlog) { 
++    isyslog("LNB %d: Request for channel %d on device %d. MaxBadPriority is %d", LnbNr(), Channel->Number(), this->cardIndex + 1, maxBadPriority);
++  }
++  return maxBadPriority;
++}
++
++bool cDevice::IsShareAvoidDevice(const cChannel *Channel, const cDevice *AvoidDevice) const
++{                                
++  if (parentDevice)
++     return parentDevice->IsShareAvoidDevice(Channel, AvoidDevice);
++  if(!cSource::IsSat(Channel->Source())) return false;  // no conflict if the new channel is not on sat
++  if(!ProvidesSource(cSource::stSat)) return false;     // no conflict if this device is not on sat
++
++  for (int i = 0; i < numDevices; i++) {
++    if (this != device[i] && device[i]->IsShareLnb(this) && device[i]->IsLnbConflict(Channel) ) {
++    	// there is a conflict between device[i] and 'this' if we tune this to Channel
++    	if(device[i] == AvoidDevice) return true;
++    }
++  }
++  return false;
++}
++// ML Ende
++
++
+ eSetChannelResult cDevice::SetChannel(const cChannel *Channel, bool LiveView)
+ {
+   if (LiveView) {
+@@ -698,6 +807,13 @@ eSetChannelResult cDevice::SetChannel(const cChannel *Channel, bool LiveView)
+ 
+   eSetChannelResult Result = scrOk;
+ 
++//ML
++  if (Setup.VerboseLNBlog) {
++    isyslog("LNB %d: Switching device %d to channel %d", LnbNr(), this->DeviceNumber() + 1, Channel->Number());
++  }
++//ML-Ende
++
++
+   // If this DVB card can't receive this channel, let's see if we can
+   // use the card that actually can receive it and transfer data from there:
+ 
+diff --git a/device.h b/device.h
+index cb3bc2c..5f92719 100644
+--- a/device.h
++++ b/device.h
+@@ -159,6 +159,46 @@ public:
+   static void Shutdown(void);
+          ///< Closes down all devices.
+          ///< Must be called at the end of the program.
++//ML
++public:
++  static void SetLnbNr(void);
++		  ///< Called after changes in setup
++		  ///< call SetLNBNrFromSetup for each device
++  virtual void SetLnbNrFromSetup(void) {};
++         ///< Called after changes in setup
++         ///< Read Setup.CardUsesLNBnr, write value to member variable of this class
++         ///< Only implemented in dvbdevice, other devices don't use LNBs
++  bool IsLnbSendSignals(void);
++         ///< If several devices share the same LNB, only the first of these
++         ///< must send signals (like 22 kHz) to the LNB
++         ///< check, whepher this device must send these signals
++  virtual int LnbNr(void) const { return ( cardIndex + 1 ) * -1; };
++         ///< Number of LNB. This is -cardIndex for all non-DVB devices.
++         ///< So, there will be no LNB conflicts for non-DVB devices.
++  virtual bool IsShareLnb(const cDevice *Device) { return false; };
++		  ///< True if both devices differ (this != Device) and share the same LNB
++  virtual bool IsLnbConflict(const cChannel *Channel) { return false; };
++         ///< false if 'Channel' can be recieved with the same 
++         ///< LNB as 'this' device is using
++         ///< Otherwise, true
++  cDevice *GetBadDevice(const cChannel *Channel) ;
++         ///< Returns NULL if there is no device which uses the same LNB or if
++         ///< all of those devices are tuned to the same frequency band and
++         ///< polarization as of the requested channel.
++         ///< Otherwise returns the first device found.
++  int GetMaxBadPriority(const cChannel *Channel) const;
++         ///< Returns the highest priority of all receiving devices which use
++         ///< the same LNB and are tuned to a different frequency band or
++         ///< polarization as of the requested channel.
++         ///< Returns -1 if there are no such devices, but the 'actual' device
++         ///< (device recieving live view) would be affected by switching to the requested channel.
++         ///< Returns -2 if there are no such devices and the actual device
++         ///< would not be affected by switching to the requested channel.
++  bool IsShareAvoidDevice(const cChannel *Channel, const cDevice *AvoidDevice) const;
++         ///< Returns true if switching this device to Channel will result in a switch of AvoidDevice
++//ML-Ende
++
++
+ private:
+   static int nextCardIndex;
+   int cardIndex;
+diff --git a/dvbdevice.c b/dvbdevice.c
+index f32b350..452c8f5 100644
+--- a/dvbdevice.c
++++ b/dvbdevice.c
+@@ -261,6 +261,7 @@ private:
+   int adapter, frontend;
+   int tuneTimeout;
+   int lockTimeout;
++  bool lnbSendSignals;   // LNB Sharing.  false if this device must not send signals to the LNB (like 22 kHz, ...).
+   time_t lastTimeoutReport;
+   fe_delivery_system frontendType;
+   cChannel channel;
+@@ -273,7 +274,7 @@ private:
+   bool SetFrontend(void);
+   virtual void Action(void);
+ public:
+-  cDvbTuner(int Device, int Fd_Frontend, int Adapter, int Frontend, fe_delivery_system FrontendType);
++  cDvbTuner(int Device, int Fd_Frontend, int Adapter, int Frontend, fe_delivery_system FrontendType, cDvbDevice *Dvbdevice); // LNB Sharing
+   virtual ~cDvbTuner();
+   const cChannel *GetTransponder(void) const { return &channel; }
+   bool IsTunedTo(const cChannel *Channel) const;
+@@ -281,8 +282,13 @@ public:
+   bool Locked(int TimeoutMs = 0);
+   };
+ 
+-cDvbTuner::cDvbTuner(int Device, int Fd_Frontend, int Adapter, int Frontend, fe_delivery_system FrontendType)
++cDvbTuner::cDvbTuner(int Device, int Fd_Frontend, int Adapter, int Frontend, fe_delivery_system FrontendType, cDvbDevice *Dvbdevice)  // LNB Sharing
+ {
++// LNB Sharing
++  if(Dvbdevice) {
++	lnbSendSignals = Dvbdevice->IsLnbSendSignals();  
++  } else lnbSendSignals = true;
++// END LNB Sharing
+   device = Device;
+   fd_frontend = Fd_Frontend;
+   adapter = Adapter;
+@@ -294,7 +300,7 @@ cDvbTuner::cDvbTuner(int Device, int Fd_Frontend, int Adapter, int Frontend, fe_
+   diseqcCommands = NULL;
+   tunerStatus = tsIdle;
+   if (frontendType == SYS_DVBS || frontendType == SYS_DVBS2)
+-     CHECK(ioctl(fd_frontend, FE_SET_VOLTAGE, SEC_VOLTAGE_13)); // must explicitly turn on LNB power
++	if(lnbSendSignals) CHECK(ioctl(fd_frontend, FE_SET_VOLTAGE, SEC_VOLTAGE_13)); // must explicitly turn on LNB power   // LNB Sharing
+   SetDescription("tuner on frontend %d/%d", adapter, frontend);
+   Start();
+ }
+@@ -394,6 +400,7 @@ bool cDvbTuner::SetFrontend(void)
+      if (Setup.DiSEqC) {
+         cDiseqc *diseqc = Diseqcs.Get(device, channel.Source(), channel.Frequency(), dtp.Polarization());
+         if (diseqc) {
++           if(lnbSendSignals) {    // LNB sharing
+            if (diseqc->Commands() && (!diseqcCommands || strcmp(diseqcCommands, diseqc->Commands()) != 0)) {
+               cDiseqc::eDiseqcActions da;
+               for (char *CurrentAction = NULL; (da = diseqc->Execute(&CurrentAction)) != cDiseqc::daNone; ) {
+@@ -421,6 +428,7 @@ bool cDvbTuner::SetFrontend(void)
+                   }
+               diseqcCommands = diseqc->Commands();
+               }
++           }   // LNB sharing
+            frequency -= diseqc->Lof();
+            }
+         else {
+@@ -438,9 +446,11 @@ bool cDvbTuner::SetFrontend(void)
+            frequency -= Setup.LnbFrequHi;
+            tone = SEC_TONE_ON;
+            }
+-        int volt = (dtp.Polarization() == 'v' || dtp.Polarization() == 'V' || dtp.Polarization() == 'r' || dtp.Polarization() == 'R') ? SEC_VOLTAGE_13 : SEC_VOLTAGE_18;
+-        CHECK(ioctl(fd_frontend, FE_SET_VOLTAGE, volt));
+-        CHECK(ioctl(fd_frontend, FE_SET_TONE, tone));
++        if(lnbSendSignals) {  // LNB sharing
++          int volt = (dtp.Polarization() == 'v' || dtp.Polarization() == 'V' || dtp.Polarization() == 'r' || dtp.Polarization() == 'R') ? SEC_VOLTAGE_13 : SEC_VOLTAGE_18;
++          CHECK(ioctl(fd_frontend, FE_SET_VOLTAGE, volt));
++          CHECK(ioctl(fd_frontend, FE_SET_TONE, tone));
++          }   // LNB sharing
+         }
+      frequency = abs(frequency); // Allow for C-band, where the frequency is less than the LOF
+ 
+@@ -718,7 +728,14 @@ cDvbDevice::cDvbDevice(int Adapter, int Frontend)
+         else
+            p = (char *)"unknown modulations";
+         isyslog("frontend %d/%d provides %s with %s (\"%s\")", adapter, frontend, DeliverySystems[frontendType], p, frontendInfo.name);
+-        dvbTuner = new cDvbTuner(CardIndex() + 1, fd_frontend, adapter, frontend, frontendType);
++        
++//ML
++        isyslog("LNB-sharing: patch version %s", LNB_SHARING_VERSION);
++        lnbState = -1;
++        SetLnbNrFromSetup();
++        lnbSource = NULL;
++        dvbTuner = new cDvbTuner(CardIndex() + 1, fd_frontend, adapter, frontend, frontendType, this);
++//ML-Ende
+         }
+      }
+   else
+@@ -934,6 +951,12 @@ bool cDvbDevice::ProvidesChannel(const cChannel *Channel, int Priority, bool *Ne
+ {
+   bool result = false;
+   bool hasPriority = Priority < 0 || Priority > this->Priority();
++  // LNB Sharing
++  if(hasPriority && GetMaxBadPriority(Channel) >= Priority) hasPriority = false;
++  if (Setup.VerboseLNBlog) {
++   isyslog("LNB %d: ProvidesChannel %d on device %d. Priority is %d, hasPriority is %d", LnbNr(), Channel->Number(), this->DeviceNumber() + 1, Priority, hasPriority);
++  }
++  // LNB Sharing END
+   bool needsDetachReceivers = false;
+ 
+   if (ProvidesTransponder(Channel)) {
+@@ -982,7 +1005,27 @@ bool cDvbDevice::IsTunedToTransponder(const cChannel *Channel)
+ bool cDvbDevice::SetChannelDevice(const cChannel *Channel, bool LiveView)
+ {
+   dvbTuner->Set(Channel);
+-  return true;
++  // LNB Sharing
++  cDvbTransponderParameters dtp(Channel->Parameters());
++ 
++  if (Channel->Frequency() >= Setup.LnbSLOF) {
++     lnbState = 1;
++  } else {
++     lnbState = 0;
++  }
++  if (dtp.Polarization() == 'v' || dtp.Polarization() == 'V') lnbState += 2;
++  lnbSource = (int*) Diseqcs.Get(CardIndex() + 1, Channel->Source(), Channel->Frequency(), dtp.Polarization());
++
++  cDevice *tmpDevice;
++  if(tmpDevice = GetBadDevice(Channel)){
++    tmpDevice->DetachAllReceivers();
++    if (tmpDevice->CamSlot() && !tmpDevice->CamSlot()->IsDecrypting())
++    	tmpDevice->CamSlot()->Assign(NULL);
++
++	tmpDevice->SwitchChannel(Channel, false);
++  }
++  	// LNB Sharing End
++ return true;
+ }
+ 
+ bool cDvbDevice::HasLock(int TimeoutMs)
+@@ -1023,6 +1066,46 @@ bool cDvbDevice::GetTSPacket(uchar *&Data)
+   return false;
+ }
+ 
++// LNB - Sharing
++void cDvbDevice::SetLnbNrFromSetup(void)
++{
++  lnbNr = Setup.CardUsesLnbNr[CardIndex()];
++  isyslog("LNB-sharing: setting device %d to use LNB %d", CardIndex() + 1, lnbNr);
++}
++
++bool cDvbDevice::IsShareLnb(const cDevice *Device)
++{ 
++  return this != Device && this->parentDevice != Device && LnbNr() == Device->LnbNr();
++};
++
++
++bool cDvbDevice::IsLnbConflict(const cChannel *Channel)
++{
++  if(!cSource::IsSat(Channel->Source())) return false;  // no conflict if the new channel is not on sat
++  if(!ProvidesSource(cSource::stSat)) return false;     // no conflict if this device is not on sat
++//if(MaySwitchTransponder()) return false;              // no conflict if this transponder may be switched
++  cDvbTransponderParameters dtp(Channel->Parameters());
++  if (Setup.DiSEqC) {
++    cDiseqc *diseqc;
++    diseqc = Diseqcs.Get(CardIndex() + 1, Channel->Source(), Channel->Frequency(), dtp.Polarization() );
++    if (LnbSource() != (int*) diseqc) return true;
++    return false;
++  } else
++  {
++    char requiredState;
++    if (Channel->Frequency() >= Setup.LnbSLOF) {
++      requiredState = 1 ;
++    } else {
++      requiredState = 0;
++    }
++    if (dtp.Polarization() == 'v' || dtp.Polarization() == 'V') requiredState += 2;
++    if(lnbState != requiredState) return true;
++    return false;
++  }
++}
++// LNB - Sharing Ende
++
++
+ // --- cDvbDeviceProbe -------------------------------------------------------
+ 
+ cList<cDvbDeviceProbe> DvbDeviceProbes;
+diff --git a/dvbdevice.h b/dvbdevice.h
+index ff606fd..b3d09bc 100644
+--- a/dvbdevice.h
++++ b/dvbdevice.h
+@@ -127,6 +127,22 @@ public:
+   virtual ~cDvbDevice();
+   virtual bool Ready(void);
+ 
++// LNB Sharing
++private:
++  char lnbState;  // Current frequency band and polarization of the DVB-tuner
++  //  cDiseqc *lnbSource;  // can not #include "diseqc.h". A workaround follows:
++  int *lnbSource;  // [DiSEqC] DiSEqC-Source
++  int lnbNr;      // Number of LNB used
++
++public:
++  int *LnbSource(void) { return lnbSource; };
++  virtual int LnbNr(void) const { if(ProvidesSource(cSource::stSat)) return lnbNr; return (CardIndex() + 1) * -1;};
++  virtual void SetLnbNrFromSetup(void);
++  virtual bool IsLnbConflict(const cChannel *Channel);
++  virtual bool IsShareLnb(const cDevice *Device);
++// LNB Sharing Ende
++ 
++  
+ // Common Interface facilities:
+ 
+ private:
+diff --git a/eitscan.c b/eitscan.c
+index 2b43e71..8cf975a 100644
+--- a/eitscan.c
++++ b/eitscan.c
+@@ -151,9 +151,11 @@ void cEITScanner::Process(void)
+                             if (Device->ProvidesTransponder(Channel)) {
+                                if (!Device->Receiving()) {
+                                   bool MaySwitchTransponder = Device->MaySwitchTransponder();
+-                                  if (MaySwitchTransponder || Device->ProvidesTransponderExclusively(Channel) && now - lastActivity > Setup.EPGScanTimeout * 3600) {
++//ML
++                                  if (MaySwitchTransponder && Device->GetMaxBadPriority(Channel) == -2 || (MaySwitchTransponder || Device->ProvidesTransponderExclusively(Channel)) && Device->GetMaxBadPriority(Channel) <= -1 && now - lastActivity > Setup.EPGScanTimeout * 3600) {
+                                      if (!MaySwitchTransponder) {
+-                                        if (Device == cDevice::ActualDevice() && !currentChannel) {
++                                        if ((Device == cDevice::ActualDevice() || Device->GetMaxBadPriority(Channel) == -1) && !currentChannel) {
++//ML-Ende
+                                            cDevice::PrimaryDevice()->StopReplay(); // stop transfer mode
+                                            currentChannel = Device->CurrentChannel();
+                                            Skins.Message(mtInfo, tr("Starting EPG scan"));
+diff --git a/menu.c b/menu.c
+index 19cfabb..f507532 100644
+--- a/menu.c
++++ b/menu.c
+@@ -2885,6 +2885,23 @@ void cMenuSetupLNB::Setup(void)
+ 
+   Clear();
+ 
++//ML
++  int numSatDevices = 0;
++  for (int i = 0; i < cDevice::NumDevices(); i++) {
++     	if (cDevice::GetDevice(i)->ProvidesSource(cSource::stSat)) numSatDevices++;
++  }     		
++  if (numSatDevices > 1) {
++  	 char tmp[40];
++     for (int i = 1; i <= cDevice::NumDevices(); i++) {
++     	if (cDevice::GetDevice(i - 1)->ProvidesSource(cSource::stSat)) {
++        	snprintf( tmp, 40, tr("Setup.LNB$DVB device %d uses LNB No."), i);
++        	Add(new cMenuEditIntItem( tmp, &data.CardUsesLnbNr[i - 1], 1, numSatDevices ));
++        }
++     }
++   }
++  Add(new cMenuEditBoolItem(tr("Setup.LNB$Log LNB usage"), &data.VerboseLNBlog));
++//ML-Ende
++
+   Add(new cMenuEditBoolItem(tr("Setup.LNB$Use DiSEqC"),               &data.DiSEqC));
+   if (!data.DiSEqC) {
+      Add(new cMenuEditIntItem( tr("Setup.LNB$SLOF (MHz)"),               &data.LnbSLOF));
+@@ -2901,6 +2918,10 @@ eOSState cMenuSetupLNB::ProcessKey(eKeys Key)
+   int oldDiSEqC = data.DiSEqC;
+   eOSState state = cMenuSetupBase::ProcessKey(Key);
+ 
++//ML
++  if (Key == kOk) cDevice::SetLnbNr();
++//ML-Ende
++
+   if (Key != kNone && data.DiSEqC != oldDiSEqC)
+      Setup();
+   return state;
+diff --git a/po/de_DE.po b/po/de_DE.po
+index 4d4f3df..4272b9d 100644
+--- a/po/de_DE.po
++++ b/po/de_DE.po
+@@ -1321,3 +1321,13 @@ msgstr "Taste dr
+ #, c-format
+ msgid "VDR will shut down in %s minutes"
+ msgstr "VDR wird in %s Minuten ausschalten"
++
++msgid "Channel locked by LNB!"
++msgstr "Kanal durch LNB gesperrt!"
++
++msgid "Setup.LNB$DVB device %d uses LNB No."
++msgstr "DVB-Empfänger %d nutzt LNB Nr."
++
++msgid "Setup.LNB$Log LNB usage"
++msgstr "LNB-Nutzung protokollieren"
++
+diff --git a/po/fr_FR.po b/po/fr_FR.po
+index 0d4cb7c..78cae5e 100644
+--- a/po/fr_FR.po
++++ b/po/fr_FR.po
+@@ -1327,3 +1327,13 @@ msgstr "Appuyer sur une touche pour annuler le red
+ #, c-format
+ msgid "VDR will shut down in %s minutes"
+ msgstr "VDR s'arrêtera dans %s minutes"
++
++msgid "Channel locked by LNB!"
++msgstr "Chaîne interdite par la LNB"
++
++msgid "Setup.LNB$DVB device %d uses LNB No."
++msgstr "La carte DVB %d utilise la LNB No."
++
++msgid "Setup.LNB$Log LNB usage"
++msgstr "Protocoller l'utilisation du LNB"
++
+diff --git a/po/it_IT.po b/po/it_IT.po
+index 0ca9025..71ebd86 100644
+--- a/po/it_IT.po
++++ b/po/it_IT.po
+@@ -1328,3 +1328,14 @@ msgstr "Premi un tasto per annullare il riavvio"
+ #, c-format
+ msgid "VDR will shut down in %s minutes"
+ msgstr "VDR si spegnerÃ  tra %s minuti"
++
++msgid "Channel locked by LNB!"
++msgstr "Canale bloccato dal LNB!"
++
++msgid "Setup.LNB$DVB device %d uses LNB No."
++msgstr "La scheda DVB %d utilizza LNB No."
++
++msgid "Setup.LNB$Log LNB usage"
++msgstr "Registra utilizzo LNB"
++
++
+diff --git a/po/nl_NL.po b/po/nl_NL.po
+index f570337..0a365af 100644
+--- a/po/nl_NL.po
++++ b/po/nl_NL.po
+@@ -1325,3 +1325,14 @@ msgstr "Druk een willekeurige toets om herstarten af te breken"
+ #, c-format
+ msgid "VDR will shut down in %s minutes"
+ msgstr "VDR zal na %s minuten uitschakelen"
++
++msgid "Channel locked by LNB!"
++msgstr "Kanaal geblokkeerd door LNB"
++
++msgid "Setup.LNB$DVB device %d uses LNB No."
++msgstr "LNB kaart %d gebruikt LNB Nr."
++
++msgid "Setup.LNB$Log LNB usage"
++msgstr "Houd LNB gebruik bij"
++
++
+diff --git a/po/ru_RU.po b/po/ru_RU.po
+index 889b98b..5b9a99f 100644
+--- a/po/ru_RU.po
++++ b/po/ru_RU.po
+@@ -1322,3 +1322,14 @@ msgstr "
+ #, c-format
+ msgid "VDR will shut down in %s minutes"
+ msgstr "VDR ÒëÚÛîçØâáï çÕàÕ× %s ÜØÝãâ"
++
++msgid "Channel locked by LNB!"
++msgstr "ºÞÝÒÕàâÕà ÑÛÞÚØàãÕâ ÚÐÝÐÛ"
++
++msgid "Setup.LNB$DVB device %d uses LNB No."
++msgstr "DVB ãáâàÞÙáâÒÞ %d ØáßÞÛì×ãÕâ  LNB No."
++
++msgid "Setup.LNB$Log LNB usage"
++msgstr "»ÞÓØàÞÒÐÝØÕ ØáßÞÛì×ÞÒÐÝØï LNB"
++
++
+diff --git a/vdr.c b/vdr.c
+index 93f586a..0f16d11 100644
+--- a/vdr.c
++++ b/vdr.c
+@@ -877,26 +877,29 @@ int main(int argc, char *argv[])
+                                break;
+                                }
+                             bool timeout = Now - DeviceUsed[d->DeviceNumber()] > TIMERDEVICETIMEOUT; // only check other devices if they have been left alone for a while
+-                            if (d->MaySwitchTransponder()) {
++                            if (d->MaySwitchTransponder() && d->GetMaxBadPriority(Timer->Channel()) == -2 ) { // LNB Sharing
+                                DeviceAvailable = true; // avoids using the actual device below
+                                if (timeout)
+                                   Device = d; // only check other devices if they have been left alone for a while
+                                }
+                             else if (timeout && !Device && InVpsMargin && !d->Receiving() && d->ProvidesTransponderExclusively(Timer->Channel()))
+-                               Device = d; // use this one only if no other with less impact can be found
+-                            }
++                               // Device = d; // use this one only if no other with less impact can be found
++                               if( d->GetMaxBadPriority(Timer->Channel()) <= -1) Device = d;  // LNB Sharing
++                         }
+                          }
+                      if (!Device && InVpsMargin && !DeviceAvailable) {
+                         cDevice *d = cDevice::ActualDevice();
+                         if (!d->Receiving() && d->ProvidesTransponder(Timer->Channel()) && Now - DeviceUsed[d->DeviceNumber()] > TIMERDEVICETIMEOUT)
+-                           Device = d; // use the actual device as a last resort
++                           // Device = d; // use the actual device as a last resort
++                           if( d->GetMaxBadPriority(Timer->Channel()) <= -1) Device = d;  // LNB Sharing
++
+                         }
+                      // Switch the device to the transponder:
+                      if (Device) {
+                         if (!Device->IsTunedToTransponder(Timer->Channel())) {
+                            if (Device == cDevice::ActualDevice() && !Device->IsPrimaryDevice())
+                               cDevice::PrimaryDevice()->StopReplay(); // stop transfer mode
+-                           dsyslog("switching device %d to channel %d", Device->DeviceNumber() + 1, Timer->Channel()->Number());
++                           dsyslog("VDR: switching device %d to channel %d", Device->DeviceNumber() + 1, Timer->Channel()->Number());
+                            Device->SwitchChannel(Timer->Channel(), false);
+                            DeviceUsed[Device->DeviceNumber()] = Now;
+                            }
