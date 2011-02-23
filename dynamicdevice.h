@@ -48,6 +48,11 @@ private:
   time_t   getTSWatchdog;
   int      getTSTimeout;
   bool     restartSectionHandler;
+  const char *GetDevPath(void) const;
+  void ReadUdevProperties(void);
+  void InternSetGetTSTimeout(int Seconds);
+  void InternSetGetTSTimeoutHandlerArg(const char *Arg);
+  void InternSetLock(bool Lock);
 public:
   cDynamicDevice();
   void DeleteSubDevice(void);

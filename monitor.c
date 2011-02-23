@@ -216,12 +216,6 @@ void cUdevDvbFilter::Process(cUdevDevice &Device)
      if (!devname || cDynamicDevice::IsAttached(devname))
         return;
      cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, devname);
-     const char *timeout = Device.GetPropertyValue("dynamite_timeout");
-     if (timeout)
-        cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetGetTSTimeout-v0.1 %s %s", devname, timeout));
-     const char *timeoutHandlerArg = Device.GetPropertyValue("dynamite_timeout_handler_arg");
-     if (timeoutHandlerArg)
-        cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetGetTSTimeoutHandlerArg-v0.1 %s %s", devname, timeoutHandlerArg));
      }
 }
 

@@ -115,3 +115,23 @@ void cUdev::Free(void)
      udev_unref(udev);
   udev = NULL;
 }
+
+cUdevDevice *cUdev::GetDeviceFromDevName(const char *DevName)
+{
+  if (DevName == NULL)
+     return NULL;
+  struct stat statbuf;
+  if (stat(DevName, &statbuf) < 0)
+     return NULL;
+  char type;
+  if (S_ISBLK(statbuf.st_mode))
+     type = 'b';
+  else if (S_ISCHR(statbuf.st_mode))
+     type = 'c';
+  else
+     return NULL;
+  udev_device *dev = udev_device_new_from_devnum(udev, type, statbuf.st_rdev);
+  if (dev == NULL)
+     return NULL;
+  return new cUdevDevice(dev);
+}

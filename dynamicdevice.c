@@ -1,4 +1,5 @@
 #include "dynamicdevice.h"
+#include "udev.h"
 #include <glob.h>
 #include <vdr/transfer.h>
 
@@ -154,6 +155,7 @@ attach:
         cCondWait::SleepMs(2);
   dynamicdevice[freeIndex]->devpath = new cString(DevPath);
   isyslog("dynamite: attached device %s to dynamic device slot %d", DevPath, freeIndex + 1);
+  dynamicdevice[freeIndex]->ReadUdevProperties();
   return ddrcSuccess;
 }
 
@@ -211,8 +213,7 @@ eDynamicDeviceReturnCode cDynamicDevice::SetLockDevice(const char *DevPath, bool
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
 
-  dynamicdevice[index]->isDetachable = !Lock;
-  isyslog("dynamite: %slocked device %s", Lock ? "" : "un", DevPath);
+  dynamicdevice[index]->InternSetLock(Lock);
   return ddrcSuccess;
 }
 
@@ -253,11 +254,7 @@ eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeout(const char *DevPath, in
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
 
-  dynamicdevice[index]->getTSTimeout = Seconds;
-  if (Seconds == 0)
-     isyslog("dynamite: disable GetTSTimeout on device %s", DevPath);
-  else
-     isyslog("dynamite: set GetTSTimeout on device %s to %d seconds", DevPath, Seconds);
+  dynamicdevice[index]->InternSetGetTSTimeout(Seconds);
   return ddrcSuccess;
 }
 
@@ -265,10 +262,10 @@ void cDynamicDevice::SetDefaultGetTSTimeout(int Seconds)
 {
   if (Seconds >= 0) {
      defaultGetTSTimeout = Seconds;
+     isyslog("dynamite: set default GetTSTimeout to %d seconds", Seconds);
      cMutexLock lock(&arrayMutex);
      for (int i = 0; i < numDynamicDevices; i++)
-         dynamicdevice[i]->getTSTimeout = Seconds;
-     isyslog("dynamite: set default GetTSTimeout on all devices to %d seconds", Seconds);
+         dynamicdevice[i]->InternSetGetTSTimeout(Seconds);
      }
 }
 
@@ -288,10 +285,7 @@ eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeoutHandlerArg(const char *D
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
 
-  if (dynamicdevice[index]->getTSTimeoutHandlerArg)
-     delete dynamicdevice[index]->getTSTimeoutHandlerArg;
-  dynamicdevice[index]->getTSTimeoutHandlerArg = new cString(Arg);
-  isyslog("dynamite: set GetTSTimeoutHandlerArg on device %s to %s", DevPath, Arg);
+  dynamicdevice[index]->InternSetGetTSTimeoutHandlerArg(Arg);
   return ddrcSuccess;
 }
 
@@ -326,6 +320,53 @@ cDynamicDevice::~cDynamicDevice()
   if (getTSTimeoutHandlerArg)
      delete getTSTimeoutHandlerArg;
   getTSTimeoutHandlerArg = NULL;
+}
+
+const char *cDynamicDevice::GetDevPath(void) const
+{
+  return (devpath ? **devpath : "");
+}
+
+void cDynamicDevice::ReadUdevProperties(void)
+{
+  if (devpath == NULL)
+     return;
+  cUdevDevice *dev = cUdev::GetDeviceFromDevName(**devpath);
+  if (dev != NULL) {
+     const char *timeout = dev->GetPropertyValue("dynamite_timeout");
+     int seconds = -1;
+     if (timeout && (sscanf(timeout, "%d", &seconds) == 1) && (seconds >= 0))
+        InternSetGetTSTimeout(seconds);
+
+     const char *timeoutHandlerArg = dev->GetPropertyValue("dynamite_timeout_handler_arg");
+     if (timeoutHandlerArg)
+        InternSetGetTSTimeoutHandlerArg(timeoutHandlerArg);
+
+     delete dev;
+     }
+}
+
+void cDynamicDevice::InternSetGetTSTimeout(int Seconds)
+{
+  getTSTimeout = Seconds;
+  if (Seconds == 0)
+     isyslog("dynamite: disable GetTSTimeout on device %s", GetDevPath());
+  else
+     isyslog("dynamite: set GetTSTimeout on device %s to %d seconds", GetDevPath(), Seconds);
+}
+
+void cDynamicDevice::InternSetGetTSTimeoutHandlerArg(const char *Arg)
+{
+  if (getTSTimeoutHandlerArg)
+     delete getTSTimeoutHandlerArg;
+  getTSTimeoutHandlerArg = new cString(Arg);
+  isyslog("dynamite: set GetTSTimeoutHandlerArg on device %s to %s", GetDevPath(), Arg);
+}
+
+void cDynamicDevice::InternSetLock(bool Lock)
+{
+  isDetachable = !Lock;
+  isyslog("dynamite: %slocked device %s", Lock ? "" : "un", GetDevPath());
 }
 
 void cDynamicDevice::DeleteSubDevice()

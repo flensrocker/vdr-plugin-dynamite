@@ -98,3 +98,8 @@ VDR Plugin 'dynamite' Revision History
 
 - add idle option to cDevice, "idle"-devices must close all their handles.
   They are ignored by the epg-scan.
+
+2011-02-23: Version 0.0.5j
+
+- move reading of udev properties from the monitor to the attacher,
+  so that they are recognized on devices present at startup.

@@ -37,6 +37,7 @@ private:
 public:
   static struct udev *Init(void);
   static void Free(void);
+  static cUdevDevice *GetDeviceFromDevName(const char *DevName);
   };
 
 #endif // __DYNAMITEUDEV_H
