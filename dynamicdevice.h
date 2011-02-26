@@ -29,7 +29,7 @@ public:
   static int NumDynamicDevices(void) { return numDynamicDevices; }
          ///< Returns the total number of dynamic devices.
   static bool ProcessQueuedCommands(void);
-  static void DetachAllDevices(void);
+  static void DetachAllDevices(bool Force);
   static cString ListAllDevices(int &ReplyCode); // for SVDRP command LSTD
   static cString AttachDevicePattern(const char *Pattern);
   static eDynamicDeviceReturnCode AttachDevice(const char *DevPath);

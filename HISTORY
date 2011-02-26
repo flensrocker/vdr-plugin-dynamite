@@ -104,7 +104,9 @@ VDR Plugin 'dynamite' Revision History
 - move reading of udev properties from the monitor to the attacher,
   so that they are recognized on devices present at startup.
 
-2011-02-26: Version 0.0.5k-rc1
+2011-02-26: Version 0.0.5k
 
 - while in cDvbDeviceProbe create only as much cDynamicDevice-objects as needed
 - create dummy-device-probe only if specified on command line option "--dummy-probe"
+- add commandline arg --GetTSTimeoutHandler /path/to/program
+- add new command "DTAD" for detaching all devices

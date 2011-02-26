@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5k-rc1";
+static const char *VERSION        = "0.0.5k";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -108,8 +108,12 @@ cPluginDynamite::~cPluginDynamite()
 
 const char *cPluginDynamite::CommandLineHelp(void)
 {
-  return "  --log-udev      log all udev events to syslog (useful for diagnostics)\n"
-         "  --dummy-probe   start dummy-device probe";
+  return "  --log-udev\n"
+         "    log all udev events to syslog (useful for diagnostics)\n"
+         "  --dummy-probe\n"
+         "    start dummy-device probe\n"
+         "  --GetTSTimeoutHandler /path/to/program\n"
+         "    set program to be called on GetTS-timeout";
 }
 
 bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
@@ -117,8 +121,20 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
   for (int i = 0; i < argc; i++) {
       if (strcmp(argv[i], "--log-udev") == 0)
          cUdevMonitor::AddFilter(NULL, new cUdevLogFilter());
+
       if ((strcmp(argv[i], "--dummy-probe") == 0) && (probe == NULL))
          probe = new cDynamiteDeviceProbe;
+
+      if ((strcasecmp(argv[i], "--GetTSTimeoutHandler") == 0) && ((i + 1) < argc)) {
+         if (getTSTimeoutHandler != NULL)
+            delete getTSTimeoutHandler;
+         getTSTimeoutHandler = NULL;
+         i++;
+         if (argv[i] != NULL) {
+            getTSTimeoutHandler = new cString(argv[i]);
+            isyslog("dynamite: installing GetTSTimeoutHandler %s", **getTSTimeoutHandler);
+            }
+         }
       }
   return true;
 }
@@ -145,7 +161,7 @@ bool cPluginDynamite::Start(void)
 
 void cPluginDynamite::Stop(void)
 {
-  cDynamicDevice::DetachAllDevices();
+  cDynamicDevice::DetachAllDevices(true);
 }
 
 void cPluginDynamite::Housekeeping(void)
@@ -221,6 +237,11 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
         cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, (const char*)Data);
      return true;
      }
+  if (strcmp(Id, "dynamite-DetachAllDevices-v0.1") == 0) {
+     if (Data != NULL)
+        cDynamicDevice::DetachAllDevices((strcasecmp((const char*)Data, "force") == 0));
+     return true;
+     }
   if (strcmp(Id, "dynamite-LockDevice-v0.1") == 0) {
      if (Data != NULL)
         cDynamicDevice::SetLockDevice((const char*)Data, true);
@@ -293,6 +314,10 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "    device if found. Case is important!\n"
     "    Any timeouts or locks set to this slot will be reset to its defaults\n"
     "    alternate command: DetachDevice",
+    "DTAD [force]\n"
+    "    detachs all attached devices\n"
+    "    \"force\" will ignore recordings and other receivers\n"
+    "    alternate command: DetachAllDevices",
     "SCND '/dev/path/glob*/pattern*'\n"
     "    Scan filesystem with pattern and try to attach each found device\n"
     "    don't forget to enclose the pattern with single quotes\n"
@@ -352,6 +377,14 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
   if ((strcasecmp(Command, "DETD") == 0) || (strcasecmp(Command, "DetachDevice") == 0)) {
      cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, Option);
      return cString::sprintf("queued command for detaching %s", Option);
+     }
+
+  if ((strcasecmp(Command, "DTAD") == 0) || (strcasecmp(Command, "DetachAllDevices") == 0)) {
+     bool force = false;
+     if (Option && (strcasecmp(Option, "force") == 0))
+        force = true;
+     cDynamicDevice::DetachAllDevices(force);
+     return cString::sprintf("detaching all devices...");
      }
 
   if ((strcasecmp(Command, "SCND") == 0) || (strcasecmp(Command, "ScanDevices") == 0))

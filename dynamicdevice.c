@@ -63,11 +63,16 @@ bool cDynamicDevice::ProcessQueuedCommands(void)
   return true;
 }
 
-void cDynamicDevice::DetachAllDevices(void)
+void cDynamicDevice::DetachAllDevices(bool Force)
 {
   cMutexLock lock(&arrayMutex);
-  for (int i = 0; i < numDynamicDevices; i++)
-      dynamicdevice[i]->DeleteSubDevice();
+  isyslog("dynamite: %sdetaching all devices", (Force ? "force " : ""));
+  for (int i = 0; i < numDynamicDevices; i++) {
+      if (Force)
+         dynamicdevice[i]->DeleteSubDevice();
+      else if (dynamicdevice[i]->devpath)
+         cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, (**dynamicdevice[i]->devpath));
+      }
 }
 
 cString cDynamicDevice::ListAllDevices(int &ReplyCode)
@@ -380,6 +385,7 @@ void cDynamicDevice::DeleteSubDevice()
      subDevice->StopSectionHandler();
      delete subDevice;
      subDevice = NULL;
+     isyslog("dynamite: deleted device for %s", (devpath ? **devpath : "(unknown)"));
      }
   if (devpath) {
      delete devpath;

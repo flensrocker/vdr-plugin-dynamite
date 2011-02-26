@@ -88,6 +88,12 @@ DETD devicepath
     Any timeouts or locks set to this slot will be reset to its defaults.
     alternate command: DetachDevice
 
+"dynamite-DetachAllDevices-v0.1"
+DTAD [force]
+    detachs all attached devices
+    "force" will ignore recordings and other receivers
+    alternate command: DetachAllDevices
+
 "dynamite-ScanDevices-v0.1"
 SCND '/dev/path/glob*/pattern*'
     Scan filesystem with pattern and try to attach each found device
@@ -159,12 +165,15 @@ Don't forget to prefix them with "plug dynamite"...
 Parameters in setup.conf
 ------------------------
 dynamite.DefaultGetTSTimeout = 0
-dynamite.GetTSTimeoutHandler = /path/to/program
 
 Commandline Arguments
 ---------------------
---log-udev      log all udev events to syslog (useful for diagnostics)
---dummy-probe   start dummy-device probe (useful for experiments)
+--log-udev
+        log all udev events to syslog (useful for diagnostics)
+--dummy-probe
+        start dummy-device probe (useful for experiments)
+--GetTSTimeoutHandler /path/to/program
+        set program to be called on GetTS-timeout
 
 "GetTS" watchdog
 ----------------
