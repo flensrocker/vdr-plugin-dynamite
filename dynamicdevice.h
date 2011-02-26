@@ -23,9 +23,9 @@ private:
   static int numDynamicDevices;
   static cMutex arrayMutex;
   static cDynamicDevice *dynamicdevice[MAXDEVICES];
-  static int IndexOf(const char *DevPath, int &NextFreeIndex);
 public:
   static cDvbDeviceProbe *dvbprobe;
+  static int IndexOf(const char *DevPath, int &NextFreeIndex);
   static int NumDynamicDevices(void) { return numDynamicDevices; }
          ///< Returns the total number of dynamic devices.
   static bool ProcessQueuedCommands(void);

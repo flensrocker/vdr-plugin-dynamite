@@ -161,6 +161,11 @@ Parameters in setup.conf
 dynamite.DefaultGetTSTimeout = 0
 dynamite.GetTSTimeoutHandler = /path/to/program
 
+Commandline Arguments
+---------------------
+--log-udev      log all udev events to syslog (useful for diagnostics)
+--dummy-probe   start dummy-device probe (useful for experiments)
+
 "GetTS" watchdog
 ----------------
 Some DVB cards are known to be unstable - sometimes their driver just hangs
@@ -172,11 +177,11 @@ will automatically detach this device if its GetTSPacket method returns
 no data for this period of time.
 WARNING: You have to attach this device manually again! For now there's no
 automatism to reload the driver (or whatever is needed) to reanimate the device.
+You can use the GetTSTimeoutHandler set in setup.conf for this.
 
 If you want to add a timeout only to specific devices you can do this with udev.
 Add a rule which sets with ENV{dynamite_timeout}="10" the needed timeout value.
-The udev-monitor in dynamite will evaluate this device-property.
-For now this only works for attaching via udev-monitor!
+
 example for udev rule:
 ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend", ENV{dynamite_timeout}="10", ENV{dynamite_timeout_handler_arg}="%k"
 
@@ -194,6 +199,4 @@ me how to do this...
 
 TODO
 ----
-* implement interface for other plugins to use the udev monitor
-* enumerate udev-properties on devices found at startup
 * implement some OSD functionality for detaching, locking etc.

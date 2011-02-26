@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5j";
+static const char *VERSION        = "0.0.5k-rc1";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -18,10 +18,16 @@ private:
 public:
   virtual bool Probe(int Adapter, int Frontend)
   {
-    if (firstProbe) {
-       firstProbe = false;
-       while (cDevice::NumDevices() < MAXDVBDEVICES)
-             new cDynamicDevice;
+    cString devpath = cString::sprintf("/dev/dvb/adapter%d/frontend%d", Adapter, Frontend);
+    int freeIndex = -1;
+    if (cDynamicDevice::IndexOf(*devpath, freeIndex) >= 0) // already attached - should not happen
+       return true;
+    if (freeIndex < 0) {
+       if ((cDevice::NumDevices() >= MAXDEVICES) || (cDynamicDevice::NumDynamicDevices() >= MAXDEVICES)) {
+          esyslog("dynamite: too many dvb-devices, vdr supports only %d devices - increase MAXDEVICES and recompile vdr", MAXDEVICES);
+          return false;
+          }
+       new cDynamicDevice;
        }
     isyslog("dynamite: grab dvb device %d/%d", Adapter, Frontend);
     cDynamicDevice::AttachDevice(*cString::sprintf("/dev/dvb/adapter%d/frontend%d", Adapter, Frontend));
@@ -76,15 +82,15 @@ public:
   };
 
 cPluginDynamite::cPluginDynamite(void)
-:getTSTimeoutHandler(NULL)
+:probe(NULL)
+,getTSTimeoutHandler(NULL)
 {
   cDynamicDevice::dynamite = this;
   cDynamicDevice::dvbprobe = new cDynamiteDvbDeviceProbe;
-  // make sure we're the first one you cares for dvbdevices
+  // make sure we're the first one who cares for dvbdevices
   cDvbDeviceProbe *firstDvbProbe = DvbDeviceProbes.First();
   if (firstDvbProbe != cDynamicDevice::dvbprobe)
      DvbDeviceProbes.Move(cDynamicDevice::dvbprobe, firstDvbProbe);
-  probe = new cDynamiteDeviceProbe;
   cUdevMonitor::AddFilter("dvb", new cUdevDvbFilter());
 }
 
@@ -102,7 +108,8 @@ cPluginDynamite::~cPluginDynamite()
 
 const char *cPluginDynamite::CommandLineHelp(void)
 {
-  return "  --log-udev      log all udev events to syslog (useful for diagnostics)\n";
+  return "  --log-udev      log all udev events to syslog (useful for diagnostics)\n"
+         "  --dummy-probe   start dummy-device probe";
 }
 
 bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
@@ -110,6 +117,8 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
   for (int i = 0; i < argc; i++) {
       if (strcmp(argv[i], "--log-udev") == 0)
          cUdevMonitor::AddFilter(NULL, new cUdevLogFilter());
+      if ((strcmp(argv[i], "--dummy-probe") == 0) && (probe == NULL))
+         probe = new cDynamiteDeviceProbe;
       }
   return true;
 }
@@ -117,8 +126,11 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
 bool cPluginDynamite::Initialize(void)
 {
   // create dynamic devices
-  while (cDevice::NumDevices() < MAXDEVICES)
-        new cDynamicDevice;
+  if (cDevice::NumDevices() < MAXDEVICES) {
+     isyslog("dynamite: creating dynamic device slots as much as possible");
+     while (cDevice::NumDevices() < MAXDEVICES)
+           new cDynamicDevice;
+     }
   if (!cDynamicDevice::ProcessQueuedCommands())
      esyslog("dynamite: can't process all queued commands");
   return true;
@@ -184,7 +196,7 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
      getTSTimeoutHandler = NULL;
      if (Value != NULL) {
         getTSTimeoutHandler = new cString(Value);
-        isyslog("dynamite: installed GetTSTimeoutHandler %s", **getTSTimeoutHandler);
+        isyslog("dynamite: installing GetTSTimeoutHandler %s", **getTSTimeoutHandler);
         }
      }
   else
