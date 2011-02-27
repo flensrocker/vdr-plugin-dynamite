@@ -413,7 +413,7 @@ index 5289bbd..ea54bdb 100644
  
  int cDvbCiAdapter::Read(uint8_t *Buffer, int MaxLength)
 diff --git a/dvbdevice.c b/dvbdevice.c
-index f32b350..356a535 100644
+index f32b350..0c3990f 100644
 --- a/dvbdevice.c
 +++ b/dvbdevice.c
 @@ -259,6 +259,7 @@ private:
@@ -582,7 +582,7 @@ index f32b350..356a535 100644
 +bool cDvbDevice::SetIdleDevice(bool Idle, bool TestOnly)
 +{
 +  if (TestOnly)
-+     return true;
++     return (ciAdapter == NULL); // TODO: implement "idle" dvbCiAdapter
 +  if (!dvbTuner->SetIdle(Idle))
 +     return false;
 +  if (Idle)
