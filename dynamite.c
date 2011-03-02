@@ -30,7 +30,9 @@ public:
        new cDynamicDevice;
        }
     isyslog("dynamite: grab dvb device %d/%d", Adapter, Frontend);
-    cDynamicDevice::AttachDevice(*cString::sprintf("/dev/dvb/adapter%d/frontend%d", Adapter, Frontend));
+    cDynamicDevice::AttachDevice(*devpath);
+    // or better attach later when all plugins are started?
+    //cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, *devpath);
     return true; // grab all dvbdevices
   }
   };

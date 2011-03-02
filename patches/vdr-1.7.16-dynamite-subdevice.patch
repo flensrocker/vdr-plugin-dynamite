@@ -1,3 +1,16 @@
+diff --git a/ci.h b/ci.h
+index c31dccf..daa18f6 100644
+--- a/ci.h
++++ b/ci.h
+@@ -115,6 +115,8 @@ public:
+        ///< The derived class must call Cancel(3) in its destructor.
+   virtual bool Ready(void);
+        ///< Returns 'true' if all present CAMs in this adapter are ready.
++  virtual bool SetIdle(bool Idle, bool TestOnly) { return false; }
++  virtual bool IsIdle(void) const { return false; }
+   };
+ 
+ class cTPDU;
 diff --git a/device.c b/device.c
 index 681049b..fffcbe6 100644
 --- a/device.c
@@ -400,20 +413,148 @@ index cb3bc2c..64c4c36 100644
 +  
  #endif //__DEVICE_H
 diff --git a/dvbci.c b/dvbci.c
-index 5289bbd..ea54bdb 100644
+index 5289bbd..fea3a83 100644
 --- a/dvbci.c
 +++ b/dvbci.c
-@@ -41,6 +41,8 @@ cDvbCiAdapter::cDvbCiAdapter(cDevice *Device, int Fd)
+@@ -10,15 +10,18 @@
+ #include "dvbci.h"
+ #include <linux/dvb/ca.h>
+ #include <sys/ioctl.h>
+-#include "device.h"
++#include "dvbdevice.h"
+ 
+ // --- cDvbCiAdapter ---------------------------------------------------------
+ 
+-cDvbCiAdapter::cDvbCiAdapter(cDevice *Device, int Fd)
++cDvbCiAdapter::cDvbCiAdapter(cDevice *Device, int Fd, int Adapter, int Frontend)
+ {
+   device = Device;
+   SetDescription("CI adapter on device %d", device->DeviceNumber());
+   fd = Fd;
++  adapter = Adapter;
++  frontend = Frontend;
++  idle = false;
+   ca_caps_t Caps;
+   if (ioctl(fd, CA_GET_CAP, &Caps) == 0) {
+      if ((Caps.slot_type & CA_CI_LINK) != 0) {
+@@ -41,10 +44,44 @@ cDvbCiAdapter::cDvbCiAdapter(cDevice *Device, int Fd)
  cDvbCiAdapter::~cDvbCiAdapter()
  {
    Cancel(3);
 +  if (device->IsSubDevice() || device->HasSubDevice())
-+     close(fd);
++     CloseCa();
++}
++
++bool cDvbCiAdapter::OpenCa(void)
++{
++  if (fd >= 0)
++     return true;
++  fd = cDvbDevice::DvbOpen(DEV_DVB_CA, adapter, frontend, O_RDWR);
++  return (fd >= 0);
++}
++
++void cDvbCiAdapter::CloseCa(void)
++{
++  if (fd < 0)
++     return;
++  close(fd);
++  fd = -1;
++}
++
++bool cDvbCiAdapter::SetIdle(bool Idle, bool TestOnly)
++{
++  if ((adapter < 0) || (frontend < 0))
++     return false;
++  if (TestOnly || (idle == Idle))
++     return true;
++  if (Idle)
++     CloseCa();
++  else
++     OpenCa();
++  idle = Idle;
++  return true;
  }
  
  int cDvbCiAdapter::Read(uint8_t *Buffer, int MaxLength)
+ {
++  if (idle || (fd < 0))
++     return 0;
+   if (Buffer && MaxLength > 0) {
+      struct pollfd pfd[1];
+      pfd[0].fd = fd;
+@@ -61,6 +98,8 @@ int cDvbCiAdapter::Read(uint8_t *Buffer, int MaxLength)
+ 
+ void cDvbCiAdapter::Write(const uint8_t *Buffer, int Length)
+ {
++  if (idle || (fd < 0))
++     return;
+   if (Buffer && Length > 0) {
+      if (safe_write(fd, Buffer, Length) != Length)
+         esyslog("ERROR: can't write to CI adapter on device %d: %m", device->DeviceNumber());
+@@ -69,6 +108,8 @@ void cDvbCiAdapter::Write(const uint8_t *Buffer, int Length)
+ 
+ bool cDvbCiAdapter::Reset(int Slot)
+ {
++  if (idle || (fd < 0))
++     return false;
+   if (ioctl(fd, CA_RESET, 1 << Slot) != -1)
+      return true;
+   else
+@@ -78,6 +119,8 @@ bool cDvbCiAdapter::Reset(int Slot)
+ 
+ eModuleStatus cDvbCiAdapter::ModuleStatus(int Slot)
+ {
++  if (idle || (fd < 0))
++     return msNone;
+   ca_slot_info_t sinfo;
+   sinfo.num = Slot;
+   if (ioctl(fd, CA_GET_SLOT_INFO, &sinfo) != -1) {
+@@ -99,10 +142,10 @@ bool cDvbCiAdapter::Assign(cDevice *Device, bool Query)
+   return true;
+ }
+ 
+-cDvbCiAdapter *cDvbCiAdapter::CreateCiAdapter(cDevice *Device, int Fd)
++cDvbCiAdapter *cDvbCiAdapter::CreateCiAdapter(cDevice *Device, int Fd, int Adapter, int Frontend)
+ {
+   // TODO check whether a CI is actually present?
+   if (Device)
+-     return new cDvbCiAdapter(Device, Fd);
++     return new cDvbCiAdapter(Device, Fd, Adapter, Frontend);
+   return NULL;
+ }
+diff --git a/dvbci.h b/dvbci.h
+index adbe40d..6d117b2 100644
+--- a/dvbci.h
++++ b/dvbci.h
+@@ -16,16 +16,24 @@ class cDvbCiAdapter : public cCiAdapter {
+ private:
+   cDevice *device;
+   int fd;
++  int adapter;
++  int frontend;
++  bool idle;
++
++  bool OpenCa(void);
++  void CloseCa(void);
+ protected:
+   virtual int Read(uint8_t *Buffer, int MaxLength);
+   virtual void Write(const uint8_t *Buffer, int Length);
+   virtual bool Reset(int Slot);
+   virtual eModuleStatus ModuleStatus(int Slot);
+   virtual bool Assign(cDevice *Device, bool Query = false);
+-  cDvbCiAdapter(cDevice *Device, int Fd);
++  cDvbCiAdapter(cDevice *Device, int Fd, int Adapter = -1, int Frontend = -1);
+ public:
+   virtual ~cDvbCiAdapter();
+-  static cDvbCiAdapter *CreateCiAdapter(cDevice *Device, int Fd);
++  virtual bool SetIdle(bool Idle, bool TestOnly);
++  virtual bool IsIdle(void) const { return idle; }
++  static cDvbCiAdapter *CreateCiAdapter(cDevice *Device, int Fd, int Adapter = -1, int Frontend = -1);
+   };
+ 
+ #endif //__DVBCI_H
 diff --git a/dvbdevice.c b/dvbdevice.c
-index f32b350..0c3990f 100644
+index f32b350..755d9e0 100644
 --- a/dvbdevice.c
 +++ b/dvbdevice.c
 @@ -259,6 +259,7 @@ private:
@@ -562,7 +703,7 @@ index f32b350..0c3990f 100644
    fd_ca = DvbOpen(DEV_DVB_CA, adapter, frontend, O_RDWR);
    if (fd_ca >= 0)
 -     ciAdapter = cDvbCiAdapter::CreateCiAdapter(this, fd_ca);
-+     ciAdapter = cDvbCiAdapter::CreateCiAdapter(parentDevice ? parentDevice : this, fd_ca);
++     ciAdapter = cDvbCiAdapter::CreateCiAdapter(parentDevice ? parentDevice : this, fd_ca, Adapter, Frontend);
  
    // The DVR device (will be opened and closed as needed):
  
@@ -575,16 +716,23 @@ index f32b350..0c3990f 100644
          }
       }
    else
-@@ -823,6 +879,24 @@ bool cDvbDevice::Ready(void)
+@@ -823,6 +879,31 @@ bool cDvbDevice::Ready(void)
    return true;
  }
  
 +bool cDvbDevice::SetIdleDevice(bool Idle, bool TestOnly)
 +{
-+  if (TestOnly)
-+     return (ciAdapter == NULL); // TODO: implement "idle" dvbCiAdapter
++  if (TestOnly) {
++     if (ciAdapter)
++        return ciAdapter->SetIdle(Idle, true);
++     return true;
++     }
 +  if (!dvbTuner->SetIdle(Idle))
 +     return false;
++  if (ciAdapter && !ciAdapter->SetIdle(Idle, false)) {
++     dvbTuner->SetIdle(!Idle);
++     return false;
++     }
 +  if (Idle)
 +     StopSectionHandler();
 +  else
@@ -594,7 +742,7 @@ index f32b350..0c3990f 100644
 +
 +bool cDvbDevice::CanScanForEPG(void) const
 +{
-+  return !IsIdle() && !dvbTuner->IsIdle();
++  return !IsIdle() && !dvbTuner->IsIdle() && ((ciAdapter == NULL) || !ciAdapter->IsIdle());
 +}
 +
  bool cDvbDevice::HasCi(void)

@@ -1,5 +1,5 @@
 diff --git a/device.c b/device.c
-index fe10d5e..b29a993 100644
+index fe10d5e..4956b93 100644
 --- a/device.c
 +++ b/device.c
 @@ -1334,6 +1334,17 @@ bool cScDeviceProbe::Probe(int Adapter, int Frontend)
@@ -94,7 +94,7 @@ index fe10d5e..b29a993 100644
 -  
 +#ifdef __DYNAMIC_DEVICE_PROBE
 +  cDevice *cidev = parentDevice ? parentDevice : this;
-+  if(fd_ca2>=0) hwciadapter=cDvbCiAdapter::CreateCiAdapter(cidev,fd_ca2);
++  if(fd_ca2>=0) hwciadapter=cDvbCiAdapter::CreateCiAdapter(cidev,fd_ca2,adapter,frontend);
 +  cam=new cCam(this,n);
 +  ciadapter=new cScCiAdapter(cidev,n,cam);
 +#else
