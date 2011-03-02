@@ -1,5 +1,5 @@
 diff --git a/device.c b/device.c
-index fe10d5e..4956b93 100644
+index fe10d5e..cef5f90 100644
 --- a/device.c
 +++ b/device.c
 @@ -1334,6 +1334,17 @@ bool cScDeviceProbe::Probe(int Adapter, int Frontend)
@@ -87,7 +87,7 @@ index fe10d5e..4956b93 100644
    int n=CardIndex();
    if(DeviceNumber()!=n)
      PRINTF(L_GEN_ERROR,"CardIndex - DeviceNumber mismatch! Put SC plugin first on VDR commandline!");
-@@ -1538,10 +1568,16 @@ void cScDevice::LateInit(void)
+@@ -1538,10 +1568,17 @@ void cScDevice::LateInit(void)
      PRINTF(L_GEN_INFO,"Budget mode forced on card %d",n);
      softcsa=true;
      }
@@ -95,6 +95,7 @@ index fe10d5e..4956b93 100644
 +#ifdef __DYNAMIC_DEVICE_PROBE
 +  cDevice *cidev = parentDevice ? parentDevice : this;
 +  if(fd_ca2>=0) hwciadapter=cDvbCiAdapter::CreateCiAdapter(cidev,fd_ca2,adapter,frontend);
++  fd_ca2=-1; // will be closed by patched cDvbCiAdapter
 +  cam=new cCam(this,n);
 +  ciadapter=new cScCiAdapter(cidev,n,cam);
 +#else
@@ -105,8 +106,67 @@ index fe10d5e..4956b93 100644
    if(softcsa) {
      decsa=new cDeCSA(n);
      if(IsPrimaryDevice() && HasDecoder()) {
+@@ -1552,6 +1589,34 @@ void cScDevice::LateInit(void)
+     }
+ }
+ 
++#ifdef __DYNAMIC_DEVICE_PROBE
++bool cScDevice::SetIdleDevice(bool Idle, bool TestOnly)
++{
++  if (TestOnly) {
++     if (hwciadapter)
++        return hwciadapter->SetIdle(Idle, true);
++     return cDvbDevice::SetIdleDevice(Idle, true);
++     }
++  if (hwciadapter && !hwciadapter->SetIdle(Idle, false))
++     return false;
++  if (!cDvbDevice::SetIdleDevice(Idle, false)) {
++     if (hwciadapter)
++        hwciadapter->SetIdle(!Idle, false);
++     return false;
++     }
++  if (Idle) {
++     if (fd_ca >= 0)
++        close(fd_ca);
++     fd_ca = -1;
++     }
++  else {
++     if (fd_ca < 0)
++        fd_ca = cScDevices::DvbOpen(DEV_DVB_CA,adapter,frontend,O_RDWR);
++     }
++  return true;
++}
++#endif
++
+ bool cScDevice::HasCi(void)
+ {
+   return ciadapter || hwciadapter;
+@@ -1631,6 +1696,7 @@ bool cScDevice::SetCaDescr(ca_descr_t *ca_descr, bool initial)
+ #ifndef SASC
+   if(!softcsa || (fullts && ca_descr->index==0)) {
+     cMutexLock lock(&cafdMutex);
++    if(fd_ca < 0) return false;
+     return ioctl(fd_ca,CA_SET_DESCR,ca_descr)>=0;
+     }
+   else if(decsa) return decsa->SetDescr(ca_descr,initial);
+@@ -1643,6 +1709,7 @@ bool cScDevice::SetCaPid(ca_pid_t *ca_pid)
+ #ifndef SASC
+   if(!softcsa || (fullts && ca_pid->index==0)) {
+     cMutexLock lock(&cafdMutex);
++    if(fd_ca < 0) return false;
+     return ioctl(fd_ca,CA_SET_PID,ca_pid)>=0;
+     }
+   else if(decsa) return decsa->SetCaPid(ca_pid);
+@@ -1677,6 +1744,7 @@ static void av7110_write(int fd, unsigned int addr, unsigned int val)
+ 
+ void cScDevice::DumpAV7110(void)
+ {
++  if(fd_ca < 0) return;
+ #ifndef SASC
+   if(LOG(L_CORE_AV7110)) {
+ #define CODEBASE (0x2e000404+0x1ce00)
 diff --git a/device.h b/device.h
-index 5ad83f9..454d6ea 100644
+index 5ad83f9..4b1313e 100644
 --- a/device.h
 +++ b/device.h
 @@ -88,6 +88,8 @@ public:
@@ -138,6 +198,16 @@ index 5ad83f9..454d6ea 100644
    //
  #ifndef SASC
    void LateInit(void);
+@@ -147,6 +155,9 @@ public:
+ #endif //SASC
+   virtual bool SetCaDescr(ca_descr_t *ca_descr, bool initial);
+   virtual bool SetCaPid(ca_pid_t *ca_pid);
++#ifdef __DYNAMIC_DEVICE_PROBE
++  virtual bool SetIdleDevice(bool Idle, bool TestOnly);
++#endif
+   int FilterHandle(void);
+   void DumpAV7110(void);
+   cCam *Cam(void) { return cam; }
 diff --git a/sc.c b/sc.c
 index 82960bf..9f01217 100644
 --- a/sc.c
