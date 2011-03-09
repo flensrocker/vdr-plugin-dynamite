@@ -8,7 +8,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5k";
+static const char *VERSION        = "0.0.5l";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -505,7 +505,7 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
      if (getTSTimeoutHandler == NULL) {
         cString msg = cString::sprintf("no GetTSTimeoutHandler configured, arg: %s", Option);
         isyslog("dynamite: %s", *msg);
-        return cString("no GetTSTimeoutHandler configured, arg: %s", Option);
+        return cString::sprintf("no GetTSTimeoutHandler configured, arg: %s", Option);
         }
      isyslog("dynamite: executing %s %s", **getTSTimeoutHandler, Option);
      if (SystemExec(*cString::sprintf("%s %s", **getTSTimeoutHandler, Option), true) < 0) {
