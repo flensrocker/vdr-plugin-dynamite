@@ -1,11 +1,21 @@
 diff --git a/device.c b/device.c
-index fe10d5e..cef5f90 100644
+index fe10d5e..aeb06d7 100644
 --- a/device.c
 +++ b/device.c
-@@ -1334,6 +1334,17 @@ bool cScDeviceProbe::Probe(int Adapter, int Frontend)
+@@ -1325,6 +1325,8 @@ void cScDeviceProbe::Remove(void)
+ 
+ bool cScDeviceProbe::Probe(int Adapter, int Frontend)
+ {
++  if (cScDevices::SkipAdapter(Adapter))
++     return false;
+   PRINTF(L_GEN_DEBUG,"capturing device %d/%d",Adapter,Frontend);
+   new cScDevice(Adapter,Frontend,cScDevices::DvbOpen(DEV_DVB_CA,Adapter,Frontend,O_RDWR));
+   return true;
+@@ -1334,6 +1336,18 @@ bool cScDeviceProbe::Probe(int Adapter, int Frontend)
  // -- cScDevices ---------------------------------------------------------------
  
  int cScDevices::budget=0;
++int cScDevices::skipAdapter=0;
 +int cScDevices::numScDevices = 0;
 +cScDevice *cScDevices::scdevice[MAXDEVICES] = { NULL };
 +
@@ -20,7 +30,7 @@ index fe10d5e..cef5f90 100644
  
  void cScDevices::DvbName(const char *Name, int a, int f, char *buffer, int len)
  {
-@@ -1439,16 +1450,16 @@ void cScDevices::Startup(void)
+@@ -1439,16 +1453,16 @@ void cScDevices::Startup(void)
  {
    if(ScSetup.ForceTransfer)
      SetTransferModeForDolbyDigital(2);
@@ -41,7 +51,29 @@ index fe10d5e..cef5f90 100644
      if(dev) dev->EarlyShutdown();
      }
  }
-@@ -1490,19 +1501,36 @@ cScDevice::cScDevice(int Adapter, int Frontend, int cafd)
+@@ -1458,11 +1472,21 @@ void cScDevices::SetForceBudget(int n)
+    if(n>=0 && n<MAXDVBDEVICES) budget|=(1<<n);
+ }
+ 
++void cScDevices::SetSkipAdapter(int adapter)
++{
++   if(adapter>=0 && adapter<MAXDVBDEVICES) skipAdapter|=(1<<adapter);
++}
++
+ bool cScDevices::ForceBudget(int n)
+ {
+    return budget && (budget&(1<<n));
+ }
+ 
++bool cScDevices::SkipAdapter(int adapter)
++{
++   return skipAdapter && (skipAdapter&(1<<adapter));
++}
++
+ #else //SASC
+ 
+ void cScDevices::OnPluginLoad(void) {}
+@@ -1490,19 +1514,36 @@ cScDevice::cScDevice(int Adapter, int Frontend, int cafd)
  :cDvbDevice(Adapter)
  #endif
  {
@@ -78,7 +110,7 @@ index fe10d5e..cef5f90 100644
  #ifndef SASC
    DetachAllReceivers();
    Cancel(3);
-@@ -1528,6 +1556,8 @@ void cScDevice::EarlyShutdown(void)
+@@ -1528,6 +1569,8 @@ void cScDevice::EarlyShutdown(void)
  
  void cScDevice::LateInit(void)
  {
@@ -87,7 +119,7 @@ index fe10d5e..cef5f90 100644
    int n=CardIndex();
    if(DeviceNumber()!=n)
      PRINTF(L_GEN_ERROR,"CardIndex - DeviceNumber mismatch! Put SC plugin first on VDR commandline!");
-@@ -1538,10 +1568,17 @@ void cScDevice::LateInit(void)
+@@ -1538,10 +1581,17 @@ void cScDevice::LateInit(void)
      PRINTF(L_GEN_INFO,"Budget mode forced on card %d",n);
      softcsa=true;
      }
@@ -106,7 +138,7 @@ index fe10d5e..cef5f90 100644
    if(softcsa) {
      decsa=new cDeCSA(n);
      if(IsPrimaryDevice() && HasDecoder()) {
-@@ -1552,6 +1589,34 @@ void cScDevice::LateInit(void)
+@@ -1552,6 +1602,34 @@ void cScDevice::LateInit(void)
      }
  }
  
@@ -141,7 +173,7 @@ index fe10d5e..cef5f90 100644
  bool cScDevice::HasCi(void)
  {
    return ciadapter || hwciadapter;
-@@ -1631,6 +1696,7 @@ bool cScDevice::SetCaDescr(ca_descr_t *ca_descr, bool initial)
+@@ -1631,6 +1709,7 @@ bool cScDevice::SetCaDescr(ca_descr_t *ca_descr, bool initial)
  #ifndef SASC
    if(!softcsa || (fullts && ca_descr->index==0)) {
      cMutexLock lock(&cafdMutex);
@@ -149,7 +181,7 @@ index fe10d5e..cef5f90 100644
      return ioctl(fd_ca,CA_SET_DESCR,ca_descr)>=0;
      }
    else if(decsa) return decsa->SetDescr(ca_descr,initial);
-@@ -1643,6 +1709,7 @@ bool cScDevice::SetCaPid(ca_pid_t *ca_pid)
+@@ -1643,6 +1722,7 @@ bool cScDevice::SetCaPid(ca_pid_t *ca_pid)
  #ifndef SASC
    if(!softcsa || (fullts && ca_pid->index==0)) {
      cMutexLock lock(&cafdMutex);
@@ -157,7 +189,7 @@ index fe10d5e..cef5f90 100644
      return ioctl(fd_ca,CA_SET_PID,ca_pid)>=0;
      }
    else if(decsa) return decsa->SetCaPid(ca_pid);
-@@ -1677,6 +1744,7 @@ static void av7110_write(int fd, unsigned int addr, unsigned int val)
+@@ -1677,6 +1757,7 @@ static void av7110_write(int fd, unsigned int addr, unsigned int val)
  
  void cScDevice::DumpAV7110(void)
  {
@@ -166,10 +198,10 @@ index fe10d5e..cef5f90 100644
    if(LOG(L_CORE_AV7110)) {
  #define CODEBASE (0x2e000404+0x1ce00)
 diff --git a/device.h b/device.h
-index 5ad83f9..4b1313e 100644
+index 5ad83f9..5d78138 100644
 --- a/device.h
 +++ b/device.h
-@@ -88,6 +88,8 @@ public:
+@@ -88,9 +88,12 @@ public:
  
  // ----------------------------------------------------------------
  
@@ -178,8 +210,17 @@ index 5ad83f9..4b1313e 100644
  class cScDevices : public cDvbDevice {
  private:
    static int budget;
-@@ -106,6 +108,10 @@ public:
++  static int skipAdapter;
+ public:
+ #if APIVERSNUM >= 10711 // make compiler happy. These are never used!
+   cScDevices(void):cDvbDevice(0,0) {}
+@@ -103,9 +106,15 @@ public:
+   static void Startup(void);
+   static void Shutdown(void);
+   static void SetForceBudget(int n);
++  static void SetSkipAdapter(int adapter);
    static bool ForceBudget(int n);
++  static bool SkipAdapter(int adapter);
    static void DvbName(const char *Name, int a, int f, char *buffer, int len);
    static int DvbOpen(const char *Name, int a, int f, int Mode, bool ReportError=false);
 +
@@ -189,7 +230,7 @@ index 5ad83f9..4b1313e 100644
    };
  
  // ----------------------------------------------------------------
-@@ -123,6 +129,8 @@ private:
+@@ -123,6 +132,8 @@ private:
    bool softcsa, fullts;
    cMutex cafdMutex;
    cTimeMs lastDump;
@@ -198,7 +239,7 @@ index 5ad83f9..4b1313e 100644
    //
  #ifndef SASC
    void LateInit(void);
-@@ -147,6 +155,9 @@ public:
+@@ -147,6 +158,9 @@ public:
  #endif //SASC
    virtual bool SetCaDescr(ca_descr_t *ca_descr, bool initial);
    virtual bool SetCaPid(ca_pid_t *ca_pid);
@@ -209,7 +250,7 @@ index 5ad83f9..4b1313e 100644
    void DumpAV7110(void);
    cCam *Cam(void) { return cam; }
 diff --git a/sc.c b/sc.c
-index 82960bf..9f01217 100644
+index 82960bf..e33d99b 100644
 --- a/sc.c
 +++ b/sc.c
 @@ -1009,7 +1009,7 @@ void cSoftCAM::Shutdown(void)
@@ -283,3 +324,29 @@ index 82960bf..9f01217 100644
          if(dev && dev->Cam()) dev->Cam()->HouseKeeping();
          }
        }
+@@ -1339,6 +1339,7 @@ const char *cScPlugin::CommandLineHelp(void)
+   free(help_str);    //                                     for easier orientation, this is column 80|
+   help_str=bprintf(  "  -B N    --budget=N        forces DVB device N to budget mode (using FFdecsa)\n"
+                      "  -E CMD  --external-au=CMD script for external key updates\n"
++                     "  -S N    --skip=N          skip DVB adapter N\n"
+                      );
+   return help_str;
+ }
+@@ -1348,14 +1349,16 @@ bool cScPlugin::ProcessArgs(int argc, char *argv[])
+   static struct option long_options[] = {
+       { "external-au", required_argument, NULL, 'E' },
+       { "budget",      required_argument, NULL, 'B' },
++      { "skip",        required_argument, NULL, 'S' },
+       { NULL }
+     };
+ 
+   int c, option_index=0;
+-  while((c=getopt_long(argc,argv,"B:E:",long_options,&option_index))!=-1) {
++  while((c=getopt_long(argc,argv,"B:E:S:",long_options,&option_index))!=-1) {
+     switch (c) {
+       case 'E': externalAU=optarg; break;
+       case 'B': cScDevices::SetForceBudget(atoi(optarg)); break;
++      case 'S': cScDevices::SetSkipAdapter(atoi(optarg)); break;
+       default:  return false;
+       }
+     }
