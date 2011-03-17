@@ -120,3 +120,8 @@ VDR Plugin 'dynamite' Revision History
 - use getopt_long on commandline argument processing, look at README for new arguments
 - raise event via cPlugin::Service if a device is attached/detached so other plugins
   can react on it ("dynamite-event-DeviceAttached-v0.1", "dynamite-event-DeviceDetached-v0.1")
+
+2011-03-18: Version 0.0.5n
+
+- add new command "ForceDetachDevice", the device will be detached regardless of any receivers
+  or locks

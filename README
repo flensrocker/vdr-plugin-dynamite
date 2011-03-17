@@ -88,6 +88,14 @@ DETD devicepath
     Any timeouts or locks set to this slot will be reset to its defaults.
     alternate command: DetachDevice
 
+"dynamite-ForceDetachDevice-v0.1"
+FDTD devpath
+    Looks through its remembered devicepaths and deletes the attached
+    device if found. Case is important!
+    The device will be detached regardless of recordings or other locks!
+    This is useful for unplugged usb-sticks etc.
+    alternate command: ForceDetachDevice
+
 "dynamite-DetachAllDevices-v0.1"
 DTAD [force]
     detachs all attached devices

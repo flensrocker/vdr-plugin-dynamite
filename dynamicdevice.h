@@ -33,7 +33,7 @@ public:
   static cString ListAllDevices(int &ReplyCode); // for SVDRP command LSTD
   static cString AttachDevicePattern(const char *Pattern);
   static eDynamicDeviceReturnCode AttachDevice(const char *DevPath);
-  static eDynamicDeviceReturnCode DetachDevice(const char *DevPath);
+  static eDynamicDeviceReturnCode DetachDevice(const char *DevPath, bool Force);
   static eDynamicDeviceReturnCode SetLockDevice(const char *DevPath, bool Lock);
   static eDynamicDeviceReturnCode SetIdle(const char *DevPath, bool Idle);
   static eDynamicDeviceReturnCode SetGetTSTimeout(const char *DevPath, int Seconds);

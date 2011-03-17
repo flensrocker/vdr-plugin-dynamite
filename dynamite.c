@@ -9,7 +9,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5m";
+static const char *VERSION        = "0.0.5n";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -268,6 +268,11 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
         cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, (const char*)Data);
      return true;
      }
+  if (strcmp(Id, "dynamite-ForceDetachDevice-v0.1") == 0) {
+     if (Data != NULL)
+        cDynamicDevice::DetachDevice((const char*)Data, true);
+     return true;
+     }
   if (strcmp(Id, "dynamite-DetachAllDevices-v0.1") == 0) {
      if (Data != NULL)
         cDynamicDevice::DetachAllDevices((strcasecmp((const char*)Data, "force") == 0));
@@ -345,6 +350,12 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "    device if found. Case is important!\n"
     "    Any timeouts or locks set to this slot will be reset to its defaults\n"
     "    alternate command: DetachDevice",
+    "FDTD devpath\n"
+    "    Looks through its remembered devicepaths and deletes the attached\n"
+    "    device if found. Case is important!\n"
+    "    The device will be detached regardless of recordings or other locks!\n"
+    "    This is useful for unplugged usb-sticks etc.\n"
+    "    alternate command: ForceDetachDevice",
     "DTAD [force]\n"
     "    detachs all attached devices\n"
     "    \"force\" will ignore recordings and other receivers\n"
@@ -408,6 +419,11 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
   if ((strcasecmp(Command, "DETD") == 0) || (strcasecmp(Command, "DetachDevice") == 0)) {
      cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, Option);
      return cString::sprintf("queued command for detaching %s", Option);
+     }
+
+  if ((strcasecmp(Command, "FDTD") == 0) || (strcasecmp(Command, "ForceDetachDevice") == 0)) {
+     cDynamicDevice::DetachDevice(Option, true);
+     return cString::sprintf("forced detaching of %s", Option);
      }
 
   if ((strcasecmp(Command, "DTAD") == 0) || (strcasecmp(Command, "DetachAllDevices") == 0)) {

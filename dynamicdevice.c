@@ -39,7 +39,7 @@ bool cDynamicDevice::ProcessQueuedCommands(void)
           }
          case ddpcDetach:
           {
-           DetachDevice(*dev->devpath);
+           DetachDevice(*dev->devpath, false);
            break;
           }
          case ddpcService:
@@ -165,7 +165,7 @@ attach:
   return ddrcSuccess;
 }
 
-eDynamicDeviceReturnCode cDynamicDevice::DetachDevice(const char *DevPath)
+eDynamicDeviceReturnCode cDynamicDevice::DetachDevice(const char *DevPath, bool Force)
 {
   if (!DevPath)
      return ddrcNotSupported;
@@ -183,23 +183,25 @@ eDynamicDeviceReturnCode cDynamicDevice::DetachDevice(const char *DevPath)
      return ddrcNotFound;
      }
 
-  if (!dynamicdevice[index]->isDetachable) {
-     esyslog("dynamite: detaching of device %s is not allowed", DevPath);
-     return ddrcNotAllowed;
-     }
+  if (!Force) {
+     if (!dynamicdevice[index]->isDetachable) {
+        esyslog("dynamite: detaching of device %s is not allowed", DevPath);
+        return ddrcNotAllowed;
+        }
 
-  if (dynamicdevice[index] == PrimaryDevice()) {
-     esyslog("dynamite: detaching of primary device %s is not supported", DevPath);
-     return ddrcIsPrimaryDevice;
-     }
+     if (dynamicdevice[index] == PrimaryDevice()) {
+        esyslog("dynamite: detaching of primary device %s is not supported", DevPath);
+        return ddrcIsPrimaryDevice;
+        }
 
-  if (dynamicdevice[index]->Receiving(false)) {
-     esyslog("dynamite: can't detach device %s, it's receiving something important", DevPath);
-     return ddrcIsReceiving;
+     if (dynamicdevice[index]->Receiving(false)) {
+        esyslog("dynamite: can't detach device %s, it's receiving something important", DevPath);
+        return ddrcIsReceiving;
+        }
      }
 
   dynamicdevice[index]->DeleteSubDevice();
-  isyslog("dynamite: detached device %s", DevPath);
+  isyslog("dynamite: detached device %s%s", DevPath, (Force ? " (forced)" : ""));
   return ddrcSuccess;
 }
 
