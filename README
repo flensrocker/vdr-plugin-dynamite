@@ -162,17 +162,31 @@ CallGetTSTimeoutHandler arg
 
 Don't forget to prefix them with "plug dynamite"...
 
+Signals emitted via cPluginManager::CallAllServices
+---------------------------------------------------
+On some actions dynamite calls the Service interface of every plugin
+so other plugins can react on these.
+
+On attaching a device:
+"dynamite-event-DeviceAttached-v0.1" /dev/path/to/device
+
+On detaching a device:
+"dynamite-event-DeviceDetached-v0.1" /dev/path/to/device
+
 Parameters in setup.conf
 ------------------------
 dynamite.DefaultGetTSTimeout = 0
+dynamite.GetTSTimeoutHandler = /path/to/program
 
 Commandline Arguments
 ---------------------
---log-udev
+-u, --log-udev
         log all udev events to syslog (useful for diagnostics)
---dummy-probe
+-d, --dummy-probe
         start dummy-device probe (useful for experiments)
---GetTSTimeoutHandler /path/to/program
+-t, --GetTSTimeout=n
+        set default GetTS-timeout to n seconds
+-h, --GetTSTimeoutHandler=/path/to/program
         set program to be called on GetTS-timeout
 
 "GetTS" watchdog

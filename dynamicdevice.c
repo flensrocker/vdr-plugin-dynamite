@@ -161,6 +161,7 @@ attach:
   dynamicdevice[freeIndex]->devpath = new cString(DevPath);
   isyslog("dynamite: attached device %s to dynamic device slot %d", DevPath, freeIndex + 1);
   dynamicdevice[freeIndex]->ReadUdevProperties();
+  cPluginManager::CallAllServices("dynamite-event-DeviceAttached-v0.1", (void*)DevPath);
   return ddrcSuccess;
 }
 
@@ -267,7 +268,7 @@ void cDynamicDevice::SetDefaultGetTSTimeout(int Seconds)
 {
   if (Seconds >= 0) {
      defaultGetTSTimeout = Seconds;
-     isyslog("dynamite: set default GetTSTimeout to %d seconds", Seconds);
+     isyslog("dynamite: set default GetTS-Timeout to %d seconds", Seconds);
      cMutexLock lock(&arrayMutex);
      for (int i = 0; i < numDynamicDevices; i++)
          dynamicdevice[i]->InternSetGetTSTimeout(Seconds);
@@ -386,6 +387,8 @@ void cDynamicDevice::DeleteSubDevice()
      delete subDevice;
      subDevice = NULL;
      isyslog("dynamite: deleted device for %s", (devpath ? **devpath : "(unknown)"));
+     if (devpath)
+        cPluginManager::CallAllServices("dynamite-event-DeviceDetached-v0.1", (void*)**devpath);
      }
   if (devpath) {
      delete devpath;

@@ -110,3 +110,13 @@ VDR Plugin 'dynamite' Revision History
 - create dummy-device-probe only if specified on command line option "--dummy-probe"
 - add commandline arg --GetTSTimeoutHandler /path/to/program
 - add new command "DTAD" for detaching all devices
+
+2011-03-09: Version 0.0.5l
+
+- bugfix on logging error message
+
+2011-03-17: Version 0.0.5m
+
+- use getopt_long on commandline argument processing, look at README for new arguments
+- raise event via cPlugin::Service if a device is attached/detached so other plugins
+  can react on it ("dynamite-event-DeviceAttached-v0.1", "dynamite-event-DeviceDetached-v0.1")

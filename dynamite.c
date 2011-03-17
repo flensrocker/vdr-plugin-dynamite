@@ -4,11 +4,12 @@
  * See the README file for copyright information and how to reach the author.
  */
 
+#include <getopt.h>
 #include <vdr/plugin.h>
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5l";
+static const char *VERSION        = "0.0.5m";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -120,24 +121,52 @@ const char *cPluginDynamite::CommandLineHelp(void)
 
 bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
 {
-  for (int i = 0; i < argc; i++) {
-      if (strcmp(argv[i], "--log-udev") == 0)
-         cUdevMonitor::AddFilter(NULL, new cUdevLogFilter());
+  static struct option options[] =
+  {
+    {"log-udev", no_argument, 0, 'u'},
+    {"dummy-probe", no_argument, 0, 'd'},
+    {"GetTSTimeout", required_argument, 0, 't'},
+    {"GetTSTimeoutHandler", required_argument, 0, 'h'},
+    {0, 0, 0, 0}
+  };
 
-      if ((strcmp(argv[i], "--dummy-probe") == 0) && (probe == NULL))
-         probe = new cDynamiteDeviceProbe;
-
-      if ((strcasecmp(argv[i], "--GetTSTimeoutHandler") == 0) && ((i + 1) < argc)) {
-         if (getTSTimeoutHandler != NULL)
-            delete getTSTimeoutHandler;
-         getTSTimeoutHandler = NULL;
-         i++;
-         if (argv[i] != NULL) {
-            getTSTimeoutHandler = new cString(argv[i]);
-            isyslog("dynamite: installing GetTSTimeoutHandler %s", **getTSTimeoutHandler);
-            }
-         }
-      }
+  while (true) {
+        int option_index = 0;
+        int c = getopt_long(argc, argv, "udt:h:", options, &option_index);
+        if (c == -1)
+           break;
+        switch (c) {
+          case 'u':
+           {
+             isyslog("dynamite: activate udev-logging");
+             cUdevMonitor::AddFilter(NULL, new cUdevLogFilter());
+             break;
+           }
+          case 'd':
+           {
+             isyslog("dynamite: activate dummy-device-probe");
+             probe = new cDynamiteDeviceProbe;
+             break;
+           }
+          case 't':
+           {
+             if ((optarg != NULL) && isnumber(optarg))
+                cDynamicDevice::SetDefaultGetTSTimeout(strtol(optarg, NULL, 10));
+             break;
+           }
+          case 'h':
+           {
+             if (getTSTimeoutHandler != NULL)
+                delete getTSTimeoutHandler;
+             getTSTimeoutHandler = NULL;
+             if (optarg != NULL) {
+                getTSTimeoutHandler = new cString(optarg);
+                isyslog("dynamite: installing GetTS-Timeout-Handler %s", **getTSTimeoutHandler);
+                }
+             break;
+           }
+          }
+        }
   return true;
 }
 
@@ -214,7 +243,7 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
      getTSTimeoutHandler = NULL;
      if (Value != NULL) {
         getTSTimeoutHandler = new cString(Value);
-        isyslog("dynamite: installing GetTSTimeoutHandler %s", **getTSTimeoutHandler);
+        isyslog("dynamite: installing GetTS-Timeout-Handler %s", **getTSTimeoutHandler);
         }
      }
   else
