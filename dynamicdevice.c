@@ -383,8 +383,6 @@ void cDynamicDevice::DeleteSubDevice()
      Cancel(3);
      if (cTransferControl::ReceiverDevice() == this)
         cControl::Shutdown();
-     subDevice->Detach(player);
-     subDevice->DetachAllReceivers();
      subDevice->StopSectionHandler();
      delete subDevice;
      subDevice = NULL;
