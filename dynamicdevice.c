@@ -357,6 +357,8 @@ void cDynamicDevice::ReadUdevProperties(void)
 void cDynamicDevice::InternSetGetTSTimeout(int Seconds)
 {
   getTSTimeout = Seconds;
+  if (subDevice == NULL)
+     return; // no log message if no device is connected
   if (Seconds == 0)
      isyslog("dynamite: disable GetTSTimeout on device %s", GetDevPath());
   else
