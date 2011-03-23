@@ -586,7 +586,7 @@ int cDynamicDevice::GetAudioChannelDevice(void)
 {
   if (subDevice)
      return subDevice->GetAudioChannelDevice();
-  return GetAudioChannelDevice();
+  return cDevice::GetAudioChannelDevice();
 }
 
 void cDynamicDevice::SetAudioChannelDevice(int AudioChannel)
