@@ -125,3 +125,7 @@ VDR Plugin 'dynamite' Revision History
 
 - add new command "ForceDetachDevice", the device will be detached regardless of any receivers
   or locks
+
+2011-03-23: Version 0.0.5o
+
+- fix bug in GetAudioChannelDevice (endless loop)
