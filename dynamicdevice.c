@@ -825,7 +825,7 @@ bool cDynamicDevice::GetTSPacket(uchar *&Data)
            }
         else
            getTSWatchdog = 0;
-           }
+        }
      return r;
      }
   return cDevice::GetTSPacket(Data);
