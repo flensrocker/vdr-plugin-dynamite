@@ -215,7 +215,7 @@ Add a rule which sets with ENV{dynamite_timeout}="10" the needed timeout value.
 
 example for udev rule:
 ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend" \
-  , ENV{dynamite_ignore}="no" \
+  , ENV{dynamite_attach}="yes" \
   , ENV{dynamite_instanceid}="0" \
   , ENV{dynamite_timeout}="10" \
   , ENV{dynamite_timeout_handler_arg}="%k"
@@ -226,8 +226,11 @@ is not present the devpath is provided as argument, with which the device was at
 
 Udev Properties
 ---------------
-dynamite_ignore
-    "yes", "y", "1": don't attach this device
+Attaching of devices can be controlled with some udev device properties which can be
+set by a udev rule (see example above).
+
+dynamite_attach
+    "no", "n", "0", "ignore": don't attach this device, every other string will be like "yes"
 
 dynamite_instanceid
     n: attach only at vdr with matching instance id

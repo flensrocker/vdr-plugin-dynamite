@@ -129,3 +129,9 @@ VDR Plugin 'dynamite' Revision History
 2011-03-23: Version 0.0.5o
 
 - fix bug in GetAudioChannelDevice (endless loop)
+
+2011-03-24: Version 0.0.6
+
+- scan with udev for dvb devices on startup to bridge gaps in the adapter numbers
+- add udev property "dynamite_attach" to keep devices from being attached
+- add udev property "dynamite_instanceid" to associate the devices to different vdr instances

@@ -137,9 +137,10 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath)
   if (dev != NULL) {
      bool ignore = false;
      const char *tmp;
-     if (((tmp = dev->GetPropertyValue("dynamite_ignore")) != NULL)
-     && ((strcasecmp(tmp, "yes") == 0) || (strcasecmp(tmp, "y") == 0) || (strcmp(tmp, "1") == 0))) {
-        isyslog("dynamite: udev says ignore %s", DevPath);
+     if (((tmp = dev->GetPropertyValue("dynamite_attach")) != NULL)
+      && ((strcmp(tmp, "0") == 0) || (strcasecmp(tmp, "n") == 0)
+       || (strcasecmp(tmp, "no") == 0) || (strcasecmp(tmp, "ignore") == 0))) {
+        isyslog("dynamite: udev says don't attach %s", DevPath);
         ignore = true;
         }
      else if (((tmp = dev->GetPropertyValue("dynamite_instanceid")) != NULL) && isnumber(tmp)) {
