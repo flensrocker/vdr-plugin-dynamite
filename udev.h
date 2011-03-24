@@ -3,6 +3,8 @@
 
 #include <libudev.h>
 
+#include <vdr/tools.h>
+
 class cUdevListEntry {
 private:
   struct udev_list_entry *listEntry;
@@ -15,7 +17,7 @@ public:
   const char *GetValue(void) const;
   };
 
-class cUdevDevice {
+class cUdevDevice : public cListObject {
 private:
   struct udev_device *device;
   bool doUnref;
@@ -38,6 +40,8 @@ public:
   static struct udev *Init(void);
   static void Free(void);
   static cUdevDevice *GetDeviceFromDevName(const char *DevName);
+  static cUdevDevice *GetDeviceFromSysPath(const char *SysPath);
+  static cList<cUdevDevice> *EnumDevices(const char *Subsystem, const char *Property, const char *Value);
   };
 
 #endif // __DYNAMITEUDEV_H

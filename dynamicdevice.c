@@ -133,6 +133,27 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath)
      return ddrcNoFreeDynDev;
      }
 
+  cUdevDevice *dev = cUdev::GetDeviceFromDevName(DevPath);
+  if (dev != NULL) {
+     bool ignore = false;
+     const char *tmp;
+     if (((tmp = dev->GetPropertyValue("dynamite_ignore")) != NULL)
+     && ((strcasecmp(tmp, "yes") == 0) || (strcasecmp(tmp, "y") == 0) || (strcmp(tmp, "1") == 0))) {
+        isyslog("dynamite: udev says ignore %s", DevPath);
+        ignore = true;
+        }
+     else if (((tmp = dev->GetPropertyValue("dynamite_instanceid")) != NULL) && isnumber(tmp)) {
+        int devInstanceId = strtol(tmp, NULL, 10);
+        if (devInstanceId != InstanceId) {
+           isyslog("dynamite: device %s is for vdr instance %d, we are %d", DevPath, devInstanceId, InstanceId);
+           ignore = true;
+           }
+        }
+     delete dev;
+     if (ignore)
+        return ddrcNotSupported;
+     }
+
   cDevice::nextParentDevice = dynamicdevice[freeIndex];
   
   for (cDynamicDeviceProbe *ddp = DynamicDeviceProbes.First(); ddp; ddp = DynamicDeviceProbes.Next(ddp)) {

@@ -9,7 +9,7 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.5o";
+static const char *VERSION        = "0.0.6";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
 static const char *MAINMENUENTRY  = NULL;
 
@@ -178,6 +178,20 @@ bool cPluginDynamite::Initialize(void)
      while (cDevice::NumDevices() < MAXDEVICES)
            new cDynamicDevice;
      }
+  // look for all dvb devices
+  cList<cUdevDevice> *devices = cUdev::EnumDevices("dvb", "DVB_DEVICE_TYPE", "frontend");
+  if (devices != NULL) {
+     int dummy = 0;
+     for (cUdevDevice *d = devices->First(); d; d = devices->Next(d)) {
+         const char *devpath = d->GetDevnode();
+         if ((devpath != NULL) && (cDynamicDevice::IndexOf(devpath, dummy) < 0)) {
+            isyslog("dynamite: probing %s", devpath);
+            cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, devpath);
+            }
+         }
+     delete devices;
+     }
+
   if (!cDynamicDevice::ProcessQueuedCommands())
      esyslog("dynamite: can't process all queued commands");
   return true;

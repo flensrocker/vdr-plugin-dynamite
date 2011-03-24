@@ -135,3 +135,58 @@ cUdevDevice *cUdev::GetDeviceFromDevName(const char *DevName)
      return NULL;
   return new cUdevDevice(dev);
 }
+
+cUdevDevice *cUdev::GetDeviceFromSysPath(const char *SysPath)
+{
+  if (SysPath == NULL)
+     return NULL;
+  udev_device *dev = udev_device_new_from_syspath(udev, SysPath);
+  if (dev == NULL)
+     return NULL;
+  return new cUdevDevice(dev);
+}
+
+cList<cUdevDevice> *cUdev::EnumDevices(const char *Subsystem, const char *Property, const char *Value)
+{
+  cList<cUdevDevice> *devices = new cList<cUdevDevice>;
+  struct udev_enumerate *e = udev_enumerate_new(udev);
+  struct udev_list_entry *l;
+  cUdevListEntry *listEntry;
+  const char *path;
+  cUdevDevice *dev;
+  if (e != NULL) {
+     int rc = 0;
+     if (Subsystem && ((rc = udev_enumerate_add_match_subsystem(e, Subsystem)) < 0)) {
+        esyslog("dynamite: can't add subsystem %s to enum-filter: %d", Subsystem, rc);
+        goto unref;
+        }
+     if (Property && Value && ((rc = udev_enumerate_add_match_property(e, Property, Value)) < 0)) {
+        esyslog("dynamite: can't add property %s value %s to enum-filter: %d", Property, Value, rc);
+        goto unref;
+        }
+     if ((rc = udev_enumerate_scan_devices(e)) < 0) {
+        esyslog("dynamite: can't scan for devices: %d", rc);
+        goto unref;
+        }
+     l = udev_enumerate_get_list_entry(e);
+     if (l == NULL) {
+        esyslog("dynamite: can't get list of devices");
+        goto unref;
+        }
+     listEntry = new cUdevListEntry(l);
+     while (listEntry) {
+        path = listEntry->GetName();
+        if (path != NULL) {
+           dev = GetDeviceFromSysPath(path);
+           if (dev != NULL)
+              devices->Add(dev);
+           }
+        cUdevListEntry *tmp = listEntry->GetNext();
+        delete listEntry;
+        listEntry = tmp;
+        }
+unref:
+     udev_enumerate_unref(e);
+     }
+  return devices;
+}

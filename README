@@ -214,11 +214,29 @@ If you want to add a timeout only to specific devices you can do this with udev.
 Add a rule which sets with ENV{dynamite_timeout}="10" the needed timeout value.
 
 example for udev rule:
-ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend", ENV{dynamite_timeout}="10", ENV{dynamite_timeout_handler_arg}="%k"
+ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend" \
+  , ENV{dynamite_ignore}="no" \
+  , ENV{dynamite_instanceid}="0" \
+  , ENV{dynamite_timeout}="10" \
+  , ENV{dynamite_timeout_handler_arg}="%k"
 
 After the device is detached and dynamite.GetTSTimeoutHandler in setup.conf is set
 to a path, this program is called. If the udev-property "dynamite_timeout_handler_arg"
 is not present the devpath is provided as argument, with which the device was attached.
+
+Udev Properties
+---------------
+dynamite_ignore
+    "yes", "y", "1": don't attach this device
+
+dynamite_instanceid
+    n: attach only at vdr with matching instance id
+
+dynamite_timeout
+    n: set GetTS timeout in seconds on this device
+
+dynamite_timeout_handler_arg
+    string: set a argument passed through to the auto-detach script
 
 Known issues
 ------------
