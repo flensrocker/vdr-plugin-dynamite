@@ -10,9 +10,9 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.6a";
+static const char *VERSION        = "0.0.6b";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
-static const char *MAINMENUENTRY  = "dynamite";
+static const char *MAINMENUENTRY  = NULL;
 
 class cDynamiteDvbDeviceProbe : public cDvbDeviceProbe {
 private:
@@ -240,13 +240,13 @@ time_t cPluginDynamite::WakeupTime(void)
 cOsdObject *cPluginDynamite::MainMenuAction(void)
 {
   // Perform the action when selected from the main VDR menu.
-  return new cDynamiteMainMenu;
+  return NULL;
 }
 
 cMenuSetupPage *cPluginDynamite::SetupMenu(void)
 {
   // Return a setup menu in case the plugin supports one.
-  return NULL;
+  return new cDynamiteMainMenu;
 }
 
 bool cPluginDynamite::SetupParse(const char *Name, const char *Value)

@@ -1,14 +1,15 @@
 #ifndef __DYNAMITEMENU_H
 #define __DYNAMITEMENU_H
 
-#include <vdr/osdbase.h>
+#include <vdr/menuitems.h>
 
 
-class cDynamiteMainMenu : public cOsdMenu
+class cDynamiteMainMenu : public cMenuSetupPage
 {
 private:
 
 protected:
+  virtual void Store(void);
 
 public:
   cDynamiteMainMenu(void);

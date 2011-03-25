@@ -81,7 +81,6 @@ public:
 };
 
 cDynamiteMainMenu::cDynamiteMainMenu(void)
-:cOsdMenu("dynamite")
 {
   Add(new cDynamiteMenuItem(maList, "list attached devices"));
   Add(new cDynamiteMenuItem(maScan, "scan for new DVB devices", false));
@@ -92,6 +91,10 @@ cDynamiteMainMenu::cDynamiteMainMenu(void)
 }
 
 cDynamiteMainMenu::~cDynamiteMainMenu(void)
+{
+}
+
+void cDynamiteMainMenu::Store(void)
 {
 }
 
