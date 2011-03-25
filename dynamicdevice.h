@@ -25,9 +25,11 @@ private:
   static cDynamicDevice *dynamicdevice[MAXDEVICES];
 public:
   static cDvbDeviceProbe *dvbprobe;
+  static bool enableOsdMessages;
   static int IndexOf(const char *DevPath, int &NextFreeIndex);
   static int NumDynamicDevices(void) { return numDynamicDevices; }
          ///< Returns the total number of dynamic devices.
+  static cDynamicDevice *GetDynamicDevice(int Index);
   static bool ProcessQueuedCommands(void);
   static void DetachAllDevices(bool Force);
   static cString ListAllDevices(int &ReplyCode); // for SVDRP command LSTD
@@ -48,14 +50,15 @@ private:
   time_t   getTSWatchdog;
   int      getTSTimeout;
   bool     restartSectionHandler;
-  const char *GetDevPath(void) const;
   void ReadUdevProperties(void);
   void InternSetGetTSTimeout(int Seconds);
   void InternSetGetTSTimeoutHandlerArg(const char *Arg);
   void InternSetLock(bool Lock);
 public:
   cDynamicDevice();
+  const char *GetDevPath(void) const;
   void DeleteSubDevice(void);
+  bool IsDetachable(void) const { return isDetachable; }
   virtual bool SetIdleDevice(bool Idle, bool TestOnly);
   virtual bool CanScanForEPG(void) const;
 protected:

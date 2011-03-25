@@ -7,11 +7,12 @@
 #include <getopt.h>
 #include <vdr/plugin.h>
 #include "dynamicdevice.h"
+#include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.6";
+static const char *VERSION        = "0.0.6a";
 static const char *DESCRIPTION    = "attach/detach devices on the fly";
-static const char *MAINMENUENTRY  = NULL;
+static const char *MAINMENUENTRY  = "dynamite";
 
 class cDynamiteDvbDeviceProbe : public cDvbDeviceProbe {
 private:
@@ -220,6 +221,8 @@ void cPluginDynamite::MainThreadHook(void)
   // WARNING: Use with great care - see PLUGINS.html!
   if (!cDynamicDevice::ProcessQueuedCommands())
      esyslog("dynamite: can't process all queued commands");
+  if (!cDynamicDevice::enableOsdMessages)
+     cDynamicDevice::enableOsdMessages = true;
 }
 
 cString cPluginDynamite::Active(void)
@@ -237,7 +240,7 @@ time_t cPluginDynamite::WakeupTime(void)
 cOsdObject *cPluginDynamite::MainMenuAction(void)
 {
   // Perform the action when selected from the main VDR menu.
-  return NULL;
+  return new cDynamiteMainMenu;
 }
 
 cMenuSetupPage *cPluginDynamite::SetupMenu(void)

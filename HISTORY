@@ -135,3 +135,7 @@ VDR Plugin 'dynamite' Revision History
 - scan with udev for dvb devices on startup to bridge gaps in the adapter numbers
 - add udev property "dynamite_attach" to keep devices from being attached
 - add udev property "dynamite_instanceid" to associate the devices to different vdr instances
+
+2011-03-25: Version 0.0.6a
+
+- add some OSD functionality

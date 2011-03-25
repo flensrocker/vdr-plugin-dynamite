@@ -1,11 +1,13 @@
 #include "dynamicdevice.h"
 #include "udev.h"
 #include <glob.h>
+#include <vdr/skins.h>
 #include <vdr/transfer.h>
 
 cPlugin *cDynamicDevice::dynamite = NULL;
 int cDynamicDevice::defaultGetTSTimeout = 0;
 cDvbDeviceProbe *cDynamicDevice::dvbprobe = NULL;
+bool cDynamicDevice::enableOsdMessages = false;
 int cDynamicDevice::numDynamicDevices = 0;
 cMutex cDynamicDevice::arrayMutex;
 cDynamicDevice *cDynamicDevice::dynamicdevice[MAXDEVICES] = { NULL };
@@ -26,6 +28,13 @@ int cDynamicDevice::IndexOf(const char *DevPath, int &NextFreeIndex)
          }
       }
   return index;
+}
+
+cDynamicDevice *cDynamicDevice::GetDynamicDevice(int Index)
+{
+  if ((Index < 0) || (Index >= numDynamicDevices))
+     return NULL;
+  return dynamicdevice[Index];
 }
 
 bool cDynamicDevice::ProcessQueuedCommands(void)
@@ -184,6 +193,10 @@ attach:
   isyslog("dynamite: attached device %s to dynamic device slot %d", DevPath, freeIndex + 1);
   dynamicdevice[freeIndex]->ReadUdevProperties();
   cPluginManager::CallAllServices("dynamite-event-DeviceAttached-v0.1", (void*)DevPath);
+  if (enableOsdMessages) {
+     cString osdMsg = cString::sprintf("attached %s", DevPath);
+     Skins.QueueMessage(mtInfo, *osdMsg);
+     }
   return ddrcSuccess;
 }
 
@@ -224,6 +237,10 @@ eDynamicDeviceReturnCode cDynamicDevice::DetachDevice(const char *DevPath, bool 
 
   dynamicdevice[index]->DeleteSubDevice();
   isyslog("dynamite: detached device %s%s", DevPath, (Force ? " (forced)" : ""));
+  if (enableOsdMessages) {
+     cString osdMsg = cString::sprintf("detached %s", DevPath);
+     Skins.QueueMessage(mtInfo, *osdMsg);
+     }
   return ddrcSuccess;
 }
 

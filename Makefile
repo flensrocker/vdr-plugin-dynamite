@@ -55,7 +55,7 @@ endif
 
 ### The object files (add further files here):
 
-OBJS = $(PLUGIN).o dynamicdevice.o monitor.o udev.o
+OBJS = $(PLUGIN).o dynamicdevice.o menu.o monitor.o udev.o
 
 ### The main target:
 

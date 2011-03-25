@@ -170,6 +170,15 @@ CallGetTSTimeoutHandler arg
 
 Don't forget to prefix them with "plug dynamite"...
 
+Controlling dynamite with the OSD
+---------------------------------
+The main menu item "dynamite" offers the following possibilities:
+- list attached devices
+- scan for new DVB devices
+- detach device
+- lock/unlock device
+- switch device to idle
+
 Signals emitted via cPluginManager::CallAllServices
 ---------------------------------------------------
 On some actions dynamite calls the Service interface of every plugin
