@@ -11,7 +11,7 @@
 #include "monitor.h"
 
 static const char *VERSION        = "0.0.6b";
-static const char *DESCRIPTION    = "attach/detach devices on the fly";
+static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
 class cDynamiteDvbDeviceProbe : public cDvbDeviceProbe {

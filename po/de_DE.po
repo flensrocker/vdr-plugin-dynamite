@@ -1,0 +1,45 @@
+# German translations
+# Copyright (C) 2011
+# This file is distributed under the same license as the vdr-plugin-dynamite package.
+# Lars Hanisch <dvb@flensrocker.de>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: de_DE\n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2011-03-26 16:40+0100\n"
+"PO-Revision-Date: 2011-03-26 16:27+0100\n"
+"Last-Translator: Lars Hanisch <dvb@flensrocker.de>\n"
+"Language-Team: Deutsch <kde-i18n-de@kde.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#, c-format
+msgid "attached %s"
+msgstr "%s eingehängt"
+
+#, c-format
+msgid "detached %s"
+msgstr "%s ausgehängt"
+
+msgid "attach/detach devices on the fly"
+msgstr "Empfangsgeräte während des Betriebs ein- und aushängen"
+
+msgid "list attached devices"
+msgstr "eingebundene Geräte anzeigen"
+
+msgid "scan for new DVB devices"
+msgstr "nach neuen DVB-Geräten suchen"
+
+msgid "detach device"
+msgstr "Gerät aushängen"
+
+msgid "disable detach of device"
+msgstr "Gerät vor Aushängen schützen"
+
+msgid "enable detach of device"
+msgstr "Gerät zum Aushängen freigeben"
+
+msgid "switch device to idle"
+msgstr "Gerät schlafen legen"

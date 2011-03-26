@@ -194,7 +194,7 @@ attach:
   dynamicdevice[freeIndex]->ReadUdevProperties();
   cPluginManager::CallAllServices("dynamite-event-DeviceAttached-v0.1", (void*)DevPath);
   if (enableOsdMessages) {
-     cString osdMsg = cString::sprintf("attached %s", DevPath);
+     cString osdMsg = cString::sprintf(tr("attached %s"), DevPath);
      Skins.QueueMessage(mtInfo, *osdMsg);
      }
   return ddrcSuccess;
@@ -238,7 +238,7 @@ eDynamicDeviceReturnCode cDynamicDevice::DetachDevice(const char *DevPath, bool 
   dynamicdevice[index]->DeleteSubDevice();
   isyslog("dynamite: detached device %s%s", DevPath, (Force ? " (forced)" : ""));
   if (enableOsdMessages) {
-     cString osdMsg = cString::sprintf("detached %s", DevPath);
+     cString osdMsg = cString::sprintf(tr("detached %s"), DevPath);
      Skins.QueueMessage(mtInfo, *osdMsg);
      }
   return ddrcSuccess;

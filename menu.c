@@ -82,12 +82,12 @@ public:
 
 cDynamiteMainMenu::cDynamiteMainMenu(void)
 {
-  Add(new cDynamiteMenuItem(maList, "list attached devices"));
-  Add(new cDynamiteMenuItem(maScan, "scan for new DVB devices", false));
-  Add(new cDynamiteMenuItem(maDetach, "detach device"));
-  Add(new cDynamiteMenuItem(maLock, "lock device"));
-  Add(new cDynamiteMenuItem(maUnlock, "unlock device"));
-  Add(new cDynamiteMenuItem(maSetIdle, "switch device to idle"));
+  Add(new cDynamiteMenuItem(maList, tr("list attached devices")));
+  Add(new cDynamiteMenuItem(maScan, tr("scan for new DVB devices"), false));
+  Add(new cDynamiteMenuItem(maDetach, tr("detach device")));
+  Add(new cDynamiteMenuItem(maLock, tr("disable detach of device")));
+  Add(new cDynamiteMenuItem(maUnlock, tr("enable detach of device")));
+  Add(new cDynamiteMenuItem(maSetIdle, tr("switch device to idle")));
 }
 
 cDynamiteMainMenu::~cDynamiteMainMenu(void)
