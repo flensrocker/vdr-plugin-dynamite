@@ -140,6 +140,7 @@ VDR Plugin 'dynamite' Revision History
 
 - add some OSD functionality
 
-2011-04-06: Version 0.0.6b
+2011-04-06: Version 0.0.6c
 
-- add new parameter "--free-device-slots"
+- add new parameter "--free-device-slots" and leave an additional slot free
+  if streamdev-client is loaded
