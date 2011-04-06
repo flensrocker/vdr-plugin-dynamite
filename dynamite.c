@@ -189,10 +189,18 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
 
 bool cPluginDynamite::Initialize(void)
 {
+  static const char *badPlugins[] = {"streamdev-client", NULL};
+  int freeSlotsForKnownBadPlugins = 0;
+  for (int i = 0; badPlugins[i]; i++) {
+      if (cPluginManager::GetPlugin(badPlugins[i]) != NULL) {
+         isyslog("dynamite: %s detected, leaving one additional slot free", badPlugins[i]);
+         freeSlotsForKnownBadPlugins++;
+         }
+      }
   // create dynamic devices
-  if (cDevice::NumDevices() < (MAXDEVICES - freeDeviceSlots)) {
+  if (cDevice::NumDevices() < (MAXDEVICES - freeDeviceSlots - freeSlotsForKnownBadPlugins)) {
      isyslog("dynamite: creating dynamic device slots as much as possible");
-     while (cDevice::NumDevices() < (MAXDEVICES - freeDeviceSlots))
+     while (cDevice::NumDevices() < (MAXDEVICES - freeDeviceSlots - freeSlotsForKnownBadPlugins))
            new cDynamicDevice;
      }
   // look for all dvb devices
