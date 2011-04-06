@@ -194,6 +194,7 @@ Parameters in setup.conf
 ------------------------
 dynamite.DefaultGetTSTimeout = 0
 dynamite.GetTSTimeoutHandler = /path/to/program
+dynamite.FreeDeviceSlots = 0
 
 Commandline Arguments
 ---------------------
@@ -205,6 +206,9 @@ Commandline Arguments
         set default GetTS-timeout to n seconds
 -h, --GetTSTimeoutHandler=/path/to/program
         set program to be called on GetTS-timeout
+-f, --free-device-slots=n
+        leave n slots free for non-dynamic devices of
+        incompatible plugins
 
 "GetTS" watchdog
 ----------------

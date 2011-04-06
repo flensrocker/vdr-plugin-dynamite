@@ -62,6 +62,7 @@ class cPluginDynamite : public cPlugin {
 private:
   cDynamiteDeviceProbe *probe;
   cString *getTSTimeoutHandler;
+  int  freeDeviceSlots;
 public:
   cPluginDynamite(void);
   virtual ~cPluginDynamite();
@@ -88,6 +89,7 @@ public:
 cPluginDynamite::cPluginDynamite(void)
 :probe(NULL)
 ,getTSTimeoutHandler(NULL)
+,freeDeviceSlots(0)
 {
   cDynamicDevice::dynamite = this;
   cDynamicDevice::dvbprobe = new cDynamiteDvbDeviceProbe;
@@ -116,8 +118,10 @@ const char *cPluginDynamite::CommandLineHelp(void)
          "    log all udev events to syslog (useful for diagnostics)\n"
          "  --dummy-probe\n"
          "    start dummy-device probe\n"
-         "  --GetTSTimeoutHandler /path/to/program\n"
-         "    set program to be called on GetTS-timeout";
+         "  --GetTSTimeoutHandler=/path/to/program\n"
+         "    set program to be called on GetTS-timeout\n"
+         "  --free-device-slots=n\n"
+         "    leave n slots free for non-dynamic devices";
 }
 
 bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
@@ -128,12 +132,13 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
     {"dummy-probe", no_argument, 0, 'd'},
     {"GetTSTimeout", required_argument, 0, 't'},
     {"GetTSTimeoutHandler", required_argument, 0, 'h'},
+    {"free-device-slots", required_argument, 0, 'f'},
     {0, 0, 0, 0}
   };
 
   while (true) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "udt:h:", options, &option_index);
+        int c = getopt_long(argc, argv, "udt:h:f:", options, &option_index);
         if (c == -1)
            break;
         switch (c) {
@@ -166,6 +171,17 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
                 }
              break;
            }
+          case 'f':
+           {
+             if ((optarg != NULL) && isnumber(optarg)) {
+                int tmp = strtol(optarg, NULL, 10);
+                if ((tmp >= 0) && (tmp < MAXDEVICES))
+                   freeDeviceSlots = tmp;
+                else
+                   esyslog("dynamite: \"%d\" free device slots is out of range", tmp);
+                }
+             break;
+           }
           }
         }
   return true;
@@ -174,9 +190,9 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
 bool cPluginDynamite::Initialize(void)
 {
   // create dynamic devices
-  if (cDevice::NumDevices() < MAXDEVICES) {
+  if (cDevice::NumDevices() < (MAXDEVICES - freeDeviceSlots)) {
      isyslog("dynamite: creating dynamic device slots as much as possible");
-     while (cDevice::NumDevices() < MAXDEVICES)
+     while (cDevice::NumDevices() < (MAXDEVICES - freeDeviceSlots))
            new cDynamicDevice;
      }
   // look for all dvb devices
@@ -262,6 +278,13 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
         getTSTimeoutHandler = new cString(Value);
         isyslog("dynamite: installing GetTS-Timeout-Handler %s", **getTSTimeoutHandler);
         }
+     }
+  else if (strcasecmp(Name, "FreeDeviceSlots") == 0) {
+     int tmp = strtol(Value, NULL, 10);
+     if ((tmp >= 0) && (tmp < MAXDEVICES))
+        freeDeviceSlots = tmp;
+     else
+        esyslog("dynamite: \"%d\" free device slots is out of range", tmp);
      }
   else
      return false;

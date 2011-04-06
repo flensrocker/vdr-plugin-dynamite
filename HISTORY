@@ -139,3 +139,7 @@ VDR Plugin 'dynamite' Revision History
 2011-03-25: Version 0.0.6a
 
 - add some OSD functionality
+
+2011-04-06: Version 0.0.6b
+
+- add new parameter "--free-device-slots"
