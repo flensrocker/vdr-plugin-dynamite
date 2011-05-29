@@ -1,0 +1,116 @@
+diff --git a/PLUGINS/src/dvbsddevice/Makefile b/PLUGINS/src/dvbsddevice/Makefile
+index aa89feb..f286ead 100644
+--- a/PLUGINS/src/dvbsddevice/Makefile
++++ b/PLUGINS/src/dvbsddevice/Makefile
+@@ -19,6 +19,7 @@ VERSION = $(shell grep 'static const char \*VERSION *=' $(PLUGIN).c | awk '{ pri
+ 
+ CXX      ?= g++
+ CXXFLAGS ?= -g -O3 -Wall -Woverloaded-virtual -Wno-parentheses
++LDFLAGS  += -ludev
+ 
+ ### The directory environment:
+ 
+@@ -99,7 +100,7 @@ i18n: $(I18Nmsgs) $(I18Npot)
+ ### Targets:
+ 
+ libvdr-$(PLUGIN).so: $(OBJS)
+-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared $(OBJS) -o $@
++	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared $(OBJS) $(LDFLAGS) -o $@
+ 	@cp --remove-destination $@ $(LIBDIR)/$@.$(APIVERSION)
+ 
+ dist: $(I18Npo) clean
+diff --git a/PLUGINS/src/dvbsddevice/dvbsdffdevice.c b/PLUGINS/src/dvbsddevice/dvbsdffdevice.c
+index 8671b1e..1f95ddf 100644
+--- a/PLUGINS/src/dvbsddevice/dvbsdffdevice.c
++++ b/PLUGINS/src/dvbsddevice/dvbsdffdevice.c
+@@ -9,6 +9,7 @@
+ #include "dvbsdffdevice.h"
+ #include <errno.h>
+ #include <limits.h>
++#include <libudev.h>
+ #include <linux/videodev2.h>
+ #include <linux/dvb/audio.h>
+ #include <linux/dvb/dmx.h>
+@@ -756,6 +757,58 @@ int cDvbSdFfDevice::PlayTsAudio(const uchar *Data, int Length)
+ 
+ // --- cDvbSdFfDeviceProbe ---------------------------------------------------
+ 
++static uint32_t GetSubsystemId(const char *DevName)
++{
++  uint32_t subsystemId = 0;
++  struct stat statbuf;
++  char type;
++  struct udev *udev = NULL;
++  struct udev_device *device = NULL;
++  struct udev_device *parent = NULL;
++  const char *subsystem_vendor = NULL;
++  const char *subsystem_device = NULL;
++
++  if (DevName == NULL)
++     return 0;
++
++  if (stat(DevName, &statbuf) < 0)
++     return 0;
++
++  if (S_ISBLK(statbuf.st_mode))
++     type = 'b';
++  else if (S_ISCHR(statbuf.st_mode))
++     type = 'c';
++  else
++     return 0;
++
++  udev = udev_new();
++  if (!udev)
++     return 0;
++
++  device = udev_device_new_from_devnum(udev, type, statbuf.st_rdev);
++  if (device == NULL)
++     goto unref;
++
++  parent = udev_device_get_parent(device);
++  if (parent == NULL)
++     goto unref;
++
++  subsystem_vendor = udev_device_get_property_value(device, "subsystem_vendor");
++  if (subsystem_vendor)
++     subsystemId = strtoul(subsystem_vendor, NULL, 0) << 16;
++
++  subsystem_device = udev_device_get_property_value(device, "subsystem_device");
++  if (subsystem_device)
++     subsystemId |= strtoul(subsystem_device, NULL, 0);
++
++unref:
++  // parent device mustn't be unref'd
++  if (device)
++     udev_device_unref(device);
++  udev_unref(udev);
++  return subsystemId;
++}
++
+ bool cDvbSdFfDeviceProbe::Probe(int Adapter, int Frontend)
+ {
+   static uint32_t SubsystemIds[] = {
+@@ -772,22 +825,7 @@ bool cDvbSdFfDeviceProbe::Probe(int Adapter, int Frontend)
+     0x13C21002, // Technotrend/Hauppauge WinTV DVB-S rev1.3 SE
+     0x00000000
+     };
+-  cString FileName;
+-  cReadLine ReadLine;
+-  FILE *f = NULL;
+-  uint32_t SubsystemId = 0;
+-  FileName = cString::sprintf("/sys/class/dvb/dvb%d.frontend%d/device/subsystem_vendor", Adapter, Frontend);
+-  if ((f = fopen(FileName, "r")) != NULL) {
+-     if (char *s = ReadLine.Read(f))
+-        SubsystemId = strtoul(s, NULL, 0) << 16;
+-     fclose(f);
+-     }
+-  FileName = cString::sprintf("/sys/class/dvb/dvb%d.frontend%d/device/subsystem_device", Adapter, Frontend);
+-  if ((f = fopen(FileName, "r")) != NULL) {
+-     if (char *s = ReadLine.Read(f))
+-        SubsystemId |= strtoul(s, NULL, 0);
+-     fclose(f);
+-     }
++  uint32_t SubsystemId = GetSubsystemId(*cString::sprintf("/dev/dvb/adapter%d/frontend%d", Adapter, Frontend));
+   for (uint32_t *sid = SubsystemIds; *sid; sid++) {
+       if (*sid == SubsystemId) {
+          dsyslog("creating cDvbSdFfDevice");
