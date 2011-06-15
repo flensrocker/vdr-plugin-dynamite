@@ -17,12 +17,15 @@ int cDynamicDevice::IndexOf(const char *DevPath, int &NextFreeIndex, int WishInd
   cMutexLock lock(&arrayMutex);
   NextFreeIndex = -1;
   int index = -1;
-  for (int i = 0; (i < numDynamicDevices) && ((index < 0) || (NextFreeIndex < 0) || ((WishIndex >= 0) && (dynamicdevice[i]->CardIndex() != WishIndex))); i++) {
+  for (int i = 0; (i < numDynamicDevices) && ((index < 0) || (NextFreeIndex < 0) || (WishIndex >= 0)); i++) {
       if (dynamicdevice[i]->devpath == NULL) {
          if (WishIndex >= 0)
             isyslog("dynamite: device at slot %d has cardindex %d", i + 1, dynamicdevice[i]->CardIndex());
-         if ((NextFreeIndex < 0) || ((WishIndex >= 0) && (dynamicdevice[i]->CardIndex() == WishIndex)))
+         if ((NextFreeIndex < 0) || ((WishIndex >= 0) && (dynamicdevice[i]->CardIndex() == WishIndex))) {
             NextFreeIndex = i;
+            if (dynamicdevice[i]->CardIndex() == WishIndex)
+               break;
+            }
          }
       else if (index < 0) {
          if (strcmp(DevPath, **dynamicdevice[i]->devpath) == 0)
