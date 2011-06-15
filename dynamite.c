@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.6c";
+static const char *VERSION        = "0.0.6d";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -20,9 +20,15 @@ private:
 public:
   virtual bool Probe(int Adapter, int Frontend)
   {
+    if (firstProbe) {
+       firstProbe = false;
+       isyslog("dynamite: preparing %d dynamic device slots for dvb devices", MAXDVBDEVICES);
+       while (cDevice::NumDevices() < MAXDVBDEVICES)
+             new cDynamicDevice;
+       }
     cString devpath = cString::sprintf("/dev/dvb/adapter%d/frontend%d", Adapter, Frontend);
     int freeIndex = -1;
-    if (cDynamicDevice::IndexOf(*devpath, freeIndex) >= 0) // already attached - should not happen
+    if (cDynamicDevice::IndexOf(*devpath, freeIndex, -1) >= 0) // already attached - should not happen
        return true;
     if (freeIndex < 0) {
        if ((cDevice::NumDevices() >= MAXDEVICES) || (cDynamicDevice::NumDynamicDevices() >= MAXDEVICES)) {
@@ -209,7 +215,7 @@ bool cPluginDynamite::Initialize(void)
      int dummy = 0;
      for (cUdevDevice *d = devices->First(); d; d = devices->Next(d)) {
          const char *devpath = d->GetDevnode();
-         if ((devpath != NULL) && (cDynamicDevice::IndexOf(devpath, dummy) < 0)) {
+         if ((devpath != NULL) && (cDynamicDevice::IndexOf(devpath, dummy, -1) < 0)) {
             isyslog("dynamite: probing %s", devpath);
             cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, devpath);
             }

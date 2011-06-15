@@ -12,14 +12,16 @@ int cDynamicDevice::numDynamicDevices = 0;
 cMutex cDynamicDevice::arrayMutex;
 cDynamicDevice *cDynamicDevice::dynamicdevice[MAXDEVICES] = { NULL };
 
-int cDynamicDevice::IndexOf(const char *DevPath, int &NextFreeIndex)
+int cDynamicDevice::IndexOf(const char *DevPath, int &NextFreeIndex, int WishIndex)
 {
   cMutexLock lock(&arrayMutex);
   NextFreeIndex = -1;
   int index = -1;
-  for (int i = 0; ((index < 0) || (NextFreeIndex < 0)) && (i < numDynamicDevices); i++) {
+  for (int i = 0; (i < numDynamicDevices) && ((index < 0) || (NextFreeIndex < 0) || ((WishIndex >= 0) && (dynamicdevice[i]->CardIndex() != WishIndex))); i++) {
       if (dynamicdevice[i]->devpath == NULL) {
-         if (NextFreeIndex < 0)
+         if (WishIndex >= 0)
+            isyslog("dynamite: device at slot %d has cardindex %d", i + 1, dynamicdevice[i]->CardIndex());
+         if ((NextFreeIndex < 0) || ((WishIndex >= 0) && (dynamicdevice[i]->CardIndex() == WishIndex)))
             NextFreeIndex = i;
          }
       else if (index < 0) {
@@ -70,6 +72,23 @@ bool cDynamicDevice::ProcessQueuedCommands(void)
       }
   cDynamicDeviceProbe::commandQueue.Clear();
   return true;
+}
+
+int cDynamicDevice::GetProposedCardIndex(const char *DevPath)
+{
+  int cardindex = -1;
+  if (DevPath == NULL)
+     return cardindex;
+  cUdevDevice *dev = cUdev::GetDeviceFromDevName(DevPath);
+  if (dev != NULL) {
+     const char *val = dev->GetPropertyValue("dynamite_cardindex");
+     isyslog("dynamite: udev cardindex is %s", val);
+     int intVal = -1;
+     if (val && (sscanf(val, "%d", &intVal) == 1) && (intVal >= 0) && (intVal <= MAXDEVICES))
+        cardindex = intVal;
+     delete dev;
+     }
+  return cardindex;
 }
 
 void cDynamicDevice::DetachAllDevices(bool Force)
@@ -127,8 +146,11 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath)
      return ddrcNotSupported;
 
   cMutexLock lock(&arrayMutex);
+  int wishIndex = GetProposedCardIndex(DevPath);
+  if (wishIndex >= 0)
+     isyslog("dynamite: %s wants card index %d", DevPath, wishIndex);
   int freeIndex = -1;
-  int index = IndexOf(DevPath, freeIndex);
+  int index = IndexOf(DevPath, freeIndex, wishIndex);
   int adapter = -1;
   int frontend = -1;
 
@@ -211,7 +233,7 @@ eDynamicDeviceReturnCode cDynamicDevice::DetachDevice(const char *DevPath, bool 
   if (isnumber(DevPath))
      index = strtol(DevPath, NULL, 10) - 1;
   else
-     index = IndexOf(DevPath, freeIndex);
+     index = IndexOf(DevPath, freeIndex, -1);
 
   if ((index < 0) || (index >= numDynamicDevices)) {
      esyslog("dynamite: device %s not found", DevPath);
@@ -255,7 +277,7 @@ eDynamicDeviceReturnCode cDynamicDevice::SetLockDevice(const char *DevPath, bool
   if (isnumber(DevPath))
      index = strtol(DevPath, NULL, 10) - 1;
   else
-     index = IndexOf(DevPath, freeIndex);
+     index = IndexOf(DevPath, freeIndex, -1);
 
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
@@ -275,7 +297,7 @@ eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
   if (isnumber(DevPath))
      index = strtol(DevPath, NULL, 10) - 1;
   else
-     index = IndexOf(DevPath, freeIndex);
+     index = IndexOf(DevPath, freeIndex, -1);
 
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
@@ -296,7 +318,7 @@ eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeout(const char *DevPath, in
   if (isnumber(DevPath))
      index = strtol(DevPath, NULL, 10) - 1;
   else
-     index = IndexOf(DevPath, freeIndex);
+     index = IndexOf(DevPath, freeIndex, -1);
 
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
@@ -327,7 +349,7 @@ eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeoutHandlerArg(const char *D
   if (isnumber(DevPath))
      index = strtol(DevPath, NULL, 10) - 1;
   else
-     index = IndexOf(DevPath, freeIndex);
+     index = IndexOf(DevPath, freeIndex, -1);
 
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
@@ -340,7 +362,7 @@ bool cDynamicDevice::IsAttached(const char *DevPath)
 {
   cMutexLock lock(&arrayMutex);
   int freeIndex = -1;
-  int index = IndexOf(DevPath, freeIndex);
+  int index = IndexOf(DevPath, freeIndex, -1);
   return ((index >= 0) && (index >= numDynamicDevices));
 }
 

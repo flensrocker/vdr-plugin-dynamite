@@ -26,11 +26,12 @@ private:
 public:
   static cDvbDeviceProbe *dvbprobe;
   static bool enableOsdMessages;
-  static int IndexOf(const char *DevPath, int &NextFreeIndex);
+  static int IndexOf(const char *DevPath, int &NextFreeIndex, int WishIndex);
   static int NumDynamicDevices(void) { return numDynamicDevices; }
          ///< Returns the total number of dynamic devices.
   static cDynamicDevice *GetDynamicDevice(int Index);
   static bool ProcessQueuedCommands(void);
+  static int GetProposedCardIndex(const char *DevPath);
   static void DetachAllDevices(bool Force);
   static cString ListAllDevices(int &ReplyCode); // for SVDRP command LSTD
   static cString AttachDevicePattern(const char *Pattern);

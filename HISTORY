@@ -144,3 +144,7 @@ VDR Plugin 'dynamite' Revision History
 
 - add new parameter "--free-device-slots" and leave an additional slot free
   if streamdev-client is loaded
+
+2011-06-15: Version 0.0.6d
+
+- add udev property "dynamite_cardindex" to attach a device at a preferred slot (if free)
