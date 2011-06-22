@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.6d";
+static const char *VERSION        = "0.0.6e";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -195,12 +195,13 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
 
 bool cPluginDynamite::Initialize(void)
 {
-  static const char *badPlugins[] = {"streamdev-client", NULL};
+  static const char *badPlugins[] = {"streamdev-client", "mcli", NULL};
+  static int         badPluginsFreeCount[] = {1, 8};
   int freeSlotsForKnownBadPlugins = 0;
   for (int i = 0; badPlugins[i]; i++) {
       if (cPluginManager::GetPlugin(badPlugins[i]) != NULL) {
-         isyslog("dynamite: %s detected, leaving one additional slot free", badPlugins[i]);
-         freeSlotsForKnownBadPlugins++;
+         isyslog("dynamite: %s detected, leaving %d additional slot(s) free", badPlugins[i], badPluginsFreeCount[i]);
+         freeSlotsForKnownBadPlugins+= badPluginsFreeCount[i];
          }
       }
   // create dynamic devices

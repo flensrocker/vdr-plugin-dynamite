@@ -148,3 +148,7 @@ VDR Plugin 'dynamite' Revision History
 2011-06-15: Version 0.0.6d
 
 - add udev property "dynamite_cardindex" to attach a device at a preferred slot (if free)
+
+2011-06-22: Version 0.0.6e
+
+- leave eight additional slots free if mcli-plugin is loaded
