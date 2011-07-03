@@ -152,3 +152,7 @@ VDR Plugin 'dynamite' Revision History
 2011-06-22: Version 0.0.6e
 
 - leave eight additional slots free if mcli-plugin is loaded
+
+2011-07-03: Version 0.0.6f
+
+- don't attach devices at probe-time, just queue them

@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.6e";
+static const char *VERSION        = "0.0.6f";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -38,9 +38,9 @@ public:
        new cDynamicDevice;
        }
     isyslog("dynamite: grab dvb device %d/%d", Adapter, Frontend);
-    cDynamicDevice::AttachDevice(*devpath);
+    //cDynamicDevice::AttachDevice(*devpath);
     // or better attach later when all plugins are started?
-    //cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, *devpath);
+    cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, *devpath);
     return true; // grab all dvbdevices
   }
   };
