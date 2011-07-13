@@ -19,6 +19,7 @@ class cDynamicDevice : public cDevice {
 private:
   static cPlugin *dynamite;
   static int defaultGetTSTimeout;
+  static cString *idleHook;
 
   static int numDynamicDevices;
   static cMutex arrayMutex;

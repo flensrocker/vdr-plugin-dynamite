@@ -156,3 +156,9 @@ VDR Plugin 'dynamite' Revision History
 2011-07-03: Version 0.0.6f
 
 - don't attach devices at probe-time, just queue them
+
+2011-07-13: Version 0.0.6g
+
+- add italian translations (thanks to Diego Pierotto)
+- add commandline arg --idle-hook=/path/to/program
+  and as parameter "dynamite.IdleHook = /path/to/program" at setup.conf

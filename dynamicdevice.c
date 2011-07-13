@@ -6,6 +6,7 @@
 
 cPlugin *cDynamicDevice::dynamite = NULL;
 int cDynamicDevice::defaultGetTSTimeout = 0;
+cString *cDynamicDevice::idleHook = NULL;
 cDvbDeviceProbe *cDynamicDevice::dvbprobe = NULL;
 bool cDynamicDevice::enableOsdMessages = false;
 int cDynamicDevice::numDynamicDevices = 0;
@@ -289,6 +290,13 @@ eDynamicDeviceReturnCode cDynamicDevice::SetLockDevice(const char *DevPath, bool
   return ddrcSuccess;
 }
 
+static void CallIdleHook(const char *IdleHook, const char *DevPath, bool Idle)
+{
+  const char *idleHookCmd = *cString::sprintf("%s --idle=%s --device=%s", IdleHook, (Idle ? "on" : "off"), DevPath);
+  isyslog("dynamite: calling idle hook %s", idleHookCmd);
+  SystemExec(idleHookCmd, false);
+}
+
 eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
 {
   if (!DevPath)
@@ -305,8 +313,16 @@ eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
   if ((index < 0) || (index >= numDynamicDevices))
      return ddrcNotFound;
 
-  ((cDevice*)dynamicdevice[index])->SetIdle(Idle);
   isyslog("dynamite: set device %s to %s", DevPath, (Idle ? "idle" : "not idle"));
+  if (idleHook && !Idle)
+     CallIdleHook(**idleHook, dynamicdevice[index]->GetDevPath(), Idle);
+  if (((cDevice*)dynamicdevice[index])->SetIdle(Idle)) {
+     if (idleHook && Idle)
+        CallIdleHook(**idleHook, dynamicdevice[index]->GetDevPath(), Idle);
+     }
+  else if (idleHook && !Idle)
+     CallIdleHook(**idleHook, dynamicdevice[index]->GetDevPath(), Idle);
+
   return ddrcSuccess;
 }
 

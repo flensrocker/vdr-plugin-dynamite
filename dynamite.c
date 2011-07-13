@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.6f";
+static const char *VERSION        = "0.0.6g";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -127,7 +127,9 @@ const char *cPluginDynamite::CommandLineHelp(void)
          "  --GetTSTimeoutHandler=/path/to/program\n"
          "    set program to be called on GetTS-timeout\n"
          "  --free-device-slots=n\n"
-         "    leave n slots free for non-dynamic devices";
+         "    leave n slots free for non-dynamic devices\n"
+         "  --idle-hook=/path/to/program\n"
+         "    set program to be called on SetIdle and reactivation";
 }
 
 bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
@@ -139,12 +141,13 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
     {"GetTSTimeout", required_argument, 0, 't'},
     {"GetTSTimeoutHandler", required_argument, 0, 'h'},
     {"free-device-slots", required_argument, 0, 'f'},
+    {"idle-hook", required_argument, 0, 'i'},
     {0, 0, 0, 0}
   };
 
   while (true) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "udt:h:f:", options, &option_index);
+        int c = getopt_long(argc, argv, "udt:h:f:i:", options, &option_index);
         if (c == -1)
            break;
         switch (c) {
@@ -185,6 +188,17 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
                    freeDeviceSlots = tmp;
                 else
                    esyslog("dynamite: \"%d\" free device slots is out of range", tmp);
+                }
+             break;
+           }
+          case 'i':
+           {
+             if (cDynamicDevice::idleHook != NULL)
+                delete cDynamicDevice::idleHook;
+             cDynamicDevice::idleHook = NULL;
+             if (optarg != NULL) {
+                cDynamicDevice::idleHook = new cString(optarg);
+                isyslog("dynamite: installing idle-hook %s", **cDynamicDevice::idleHook);
                 }
              break;
            }
@@ -300,6 +314,15 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
         freeDeviceSlots = tmp;
      else
         esyslog("dynamite: \"%d\" free device slots is out of range", tmp);
+     }
+  else if (strcasecmp(Name, "IdleHook") == 0) {
+     if (cDynamicDevice::idleHook != NULL)
+        delete cDynamicDevice::idleHook;
+     cDynamicDevice::idleHook = NULL;
+     if (Value != NULL) {
+        cDynamicDevice::idleHook = new cString(Value);
+        isyslog("dynamite: installing idle-hook %s", **cDynamicDevice::idleHook);
+        }
      }
   else
      return false;

@@ -195,6 +195,7 @@ Parameters in setup.conf
 dynamite.DefaultGetTSTimeout = 0
 dynamite.GetTSTimeoutHandler = /path/to/program
 dynamite.FreeDeviceSlots = 0
+dynamite.IdleHook = /path/to/program
 
 Commandline Arguments
 ---------------------
@@ -209,6 +210,22 @@ Commandline Arguments
 -f, --free-device-slots=n
         leave n slots free for non-dynamic devices of
         incompatible plugins
+-i, --idle-hook=/path/to/program
+        set program to be called on SetIdle and reactivation
+
+Idle mode
+---------
+A device with no active receiver can be set to "idle". Classes derived
+from cDevice shall try to close all resources like filehandles in the
+method SetIdleDevice. E.g. cDvbDevice will close its frontend so the driver
+can enable a power-save mode. And it has been observed that some tuners are
+a lot cooler, so it must be good. :-)
+An idle device will be ignored by the EIT scanner but will be reactivated
+if it must be used for a recording etc.
+You can set a programm to be called on every idle-switch. It will receive
+the parameters
+  --idle=[on|off]
+  --device=/dev/path/to/device
 
 "GetTS" watchdog
 ----------------
@@ -268,4 +285,4 @@ me how to do this...
 
 TODO
 ----
-* implement some OSD functionality for detaching, locking etc.
+* implement auto-idle-mode
