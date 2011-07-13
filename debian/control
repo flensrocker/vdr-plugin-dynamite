@@ -1,0 +1,18 @@
+Source: vdr-plugin-dynamite
+Section: video
+Priority: extra
+Maintainer: Holger Schvestka <hotzenplotz5@gmx.de>
+Build-Depends: cdbs, debhelper (>= 7), vdr-dev (>= 1.7.16), libudev-dev
+Standards-Version: 3.9.1
+Homepage: http://home.versanet.de/~lhanisch/
+
+Package: vdr-plugin-dynamite
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${vdr:Depends}
+Description: A VDR plugin add hotplug functionality to the vdr
+ The goal of this plugin is to add hotplug functionality to the vdr.
+ This is achieved by wrapping a helper device around cDvbDevice which
+ checks if the hardware is available.
+
+ 
+

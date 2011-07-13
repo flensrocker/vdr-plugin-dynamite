@@ -1,0 +1,17 @@
+vdr-plugin-dynamite (0.0.6g-1yavdr0~natty) natty; urgency=medium
+
+  * New upstream version
+
+ -- Holger Schvestka <hotzenplotz5@gmx.de>  Thu, 23 Jun 2011 12:11:45 +0200
+
+vdr-plugin-dynamite (0.0.6c-0yavdr1~natty) natty; urgency=low
+
+  * add dynamite to order.conf as a last plugin
+
+ -- Gerald Dachs <gda@dachsweb.de>  Wed, 13 Apr 2011 14:50:09 +0200
+
+vdr-plugin-dynamite (0.0.2-0yavdr0) lucid; urgency=low
+
+  * Initial release
+
+ -- Holger Schvestka <hotzenplotz5@gmx.de>  Fri, 07 Jan 2011 12:49:02 +0100
