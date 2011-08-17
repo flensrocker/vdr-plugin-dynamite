@@ -166,3 +166,7 @@ VDR Plugin 'dynamite' Revision History
 2011-08-17: Version 0.0.6h
 
 - add patch for vdr 1.7.19 and add support for new virtual methods of cDevice
+
+2011-08-17: Version 0.0.7
+
+- add patch for vdr 1.7.20
