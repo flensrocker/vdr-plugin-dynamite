@@ -69,12 +69,15 @@ protected:
   virtual void MakePrimaryDevice(bool On);
 public:
   virtual bool HasDecoder(void) const;
+  virtual bool AvoidRecording(void) const;
   virtual cSpuDecoder *GetSpuDecoder(void);
   virtual bool ProvidesSource(int Source) const;
   virtual bool ProvidesTransponder(const cChannel *Channel) const;
   virtual bool ProvidesTransponderExclusively(const cChannel *Channel) const;
   virtual bool ProvidesChannel(const cChannel *Channel, int Priority = -1, bool *NeedsDetachReceivers = NULL) const;
   virtual int NumProvidedSystems(void) const;
+  virtual int SignalStrength(void) const;
+  virtual int SignalQuality(void) const;
   virtual const cChannel *GetCurrentlyTunedTransponder(void) const;
   virtual bool IsTunedToTransponder(const cChannel *Channel);
   virtual bool MaySwitchTransponder(void);

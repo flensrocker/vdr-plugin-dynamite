@@ -508,6 +508,13 @@ bool cDynamicDevice::HasDecoder(void) const
   return cDevice::HasDecoder();
 }
 
+bool cDynamicDevice::AvoidRecording(void) const
+{
+  if (subDevice)
+     return subDevice->AvoidRecording();
+  return cDevice::AvoidRecording();
+}
+
 cSpuDecoder *cDynamicDevice::GetSpuDecoder(void)
 {
   if (subDevice)
@@ -618,6 +625,20 @@ int cDynamicDevice::NumProvidedSystems(void) const
   if (subDevice)
      return subDevice->NumProvidedSystems();
   return cDevice::NumProvidedSystems();
+}
+
+int cDynamicDevice::SignalStrength(void) const
+{
+  if (subDevice)
+     return subDevice->SignalStrength();
+  return cDevice::SignalStrength();
+}
+
+int cDynamicDevice::SignalQuality(void) const
+{
+  if (subDevice)
+     return subDevice->SignalQuality();
+  return cDevice::SignalQuality();
 }
 
 const cChannel *cDynamicDevice::GetCurrentlyTunedTransponder(void) const
