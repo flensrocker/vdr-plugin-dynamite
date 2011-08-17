@@ -927,7 +927,7 @@ index adbe40d..6d117b2 100644
  
  #endif //__DVBCI_H
 diff --git a/dvbdevice.c b/dvbdevice.c
-index b0750dd..ca2d3bc 100644
+index b0750dd..a9d1dc8 100644
 --- a/dvbdevice.c
 +++ b/dvbdevice.c
 @@ -264,6 +264,7 @@ private:
@@ -1276,7 +1276,7 @@ index b0750dd..ca2d3bc 100644
 +//if(MaySwitchTransponder()) return false;              // no conflict if this transponder may be switched
 +  cDvbTransponderParameters dtp(Channel->Parameters());
 +  if (Setup.DiSEqC) {
-+    cDiseqc *diseqc;
++    const cDiseqc *diseqc;
 +    diseqc = Diseqcs.Get(CardIndex() + 1, Channel->Source(), Channel->Frequency(), dtp.Polarization() );
 +    if (LnbSource() != (int*) diseqc) return true;
 +    return false;
