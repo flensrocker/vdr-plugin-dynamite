@@ -798,9 +798,11 @@ index d446299..b1fa971 100644
 -                    codes[NumCodes++] = uchar(n);
 -                    numCodes = NumCodes;
 -                    }
-+                 if (!parsing)
++                 // unicable: don't read codes again, since there are some "presets"
++                 if ((unicable < 0) || (parsing && (unicable >= 0))) {
 +                    codes[NumCodes] = uchar(n);
-+                 ++NumCodes;
++                    ++NumCodes;
++                    }
                   t = skipspace(p);
                   }
                else {
@@ -808,7 +810,7 @@ index d446299..b1fa971 100644
                return NULL;
                }
             }
-+     if (parsing)
++     if (parsing || (unicable < 0))
 +        numCodes = NumCodes;
       return e + 1;
       }
