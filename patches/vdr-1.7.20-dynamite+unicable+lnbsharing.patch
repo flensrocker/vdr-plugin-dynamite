@@ -790,7 +790,7 @@ index d446299..b1fa971 100644
  }
  
  cDiseqc::~cDiseqc()
-@@ -101,10 +102,9 @@ const char *cDiseqc::Codes(const char *s) const
+@@ -101,10 +102,11 @@ const char *cDiseqc::Codes(const char *s) const
                char *p;
                int n = strtol(t, &p, 16);
                if (!errno && p != t && 0 <= n && n <= 255) {
