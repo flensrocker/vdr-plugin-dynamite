@@ -342,7 +342,7 @@ void cDynamicDevice::AutoIdle(void)
   for (int i = 0; i < numDynamicDevices; i++) {
       if (dynamicdevice[i]->devpath != NULL) {
          if (dynamicdevice[i]->IsIdle()) {
-            int hours = 3600 * (now - dynamicdevice[i]->idleSince);
+            int hours = (now - dynamicdevice[i]->idleSince) / 3600;
             if ((dynamicdevice[i]->idleSince > 0) && (hours >= idleWakeupHours)) {
                isyslog("dynamite: device %s idle for %d hours, waking up", dynamicdevice[i]->GetDevPath(), hours);
                cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetNotIdle-v0.1 %s", dynamicdevice[i]->GetDevPath()));
@@ -350,9 +350,12 @@ void cDynamicDevice::AutoIdle(void)
                }
             }
          else {
-            int minutes = 60 * (now - dynamicdevice[i]->lastCloseDvr);
+            int minutes = (now - dynamicdevice[i]->lastCloseDvr) / 60;
             if ((dynamicdevice[i]->lastCloseDvr > 0) && (minutes >= idleTimeoutMinutes)) {
-               isyslog("dynamite: device %s unused for %d minutes, set to idle", dynamicdevice[i]->GetDevPath(), minutes);
+               if (dynamicdevice[i]->lastCloseDvr > 0)
+                  isyslog("dynamite: device %s unused for %d minutes, set to idle", dynamicdevice[i]->GetDevPath(), minutes);
+               else
+                  isyslog("dynamite: device %s never used , set to idle", dynamicdevice[i]->GetDevPath());
                cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetIdle-v0.1 %s", dynamicdevice[i]->GetDevPath()));
                }
             }

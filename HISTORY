@@ -176,3 +176,7 @@ VDR Plugin 'dynamite' Revision History
 - add two new parameters to activate the auto-idle-mode
   --idle-timout=m  set unused devices after m minutes to idle
   --idle-wakeup=h  waheup idle devices after h hours
+
+2011-09-04: Version 0.0.7b
+
+- correct timeout evaluation for auto-idle
