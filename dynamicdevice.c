@@ -325,10 +325,14 @@ eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
      }
   else if (idleHook && !Idle)
      CallIdleHook(**idleHook, dynamicdevice[index]->GetDevPath(), Idle);
-  if (Idle)
+  if (Idle) {
      dynamicdevice[index]->idleSince = time(NULL);
-  else
+     dynamicdevice[index]->lastCloseDvr = dynamicdevice[index]->idleSince;
+     }
+  else {
      dynamicdevice[index]->idleSince = 0;
+     dynamicdevice[index]->lastCloseDvr = time(NULL);
+     }
   return ddrcSuccess;
 }
 
