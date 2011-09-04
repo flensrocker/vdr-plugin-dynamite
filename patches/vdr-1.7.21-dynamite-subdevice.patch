@@ -12,7 +12,7 @@ index c31dccf..daa18f6 100644
  
  class cTPDU;
 diff --git a/device.c b/device.c
-index 0759993..764cf98 100644
+index ba098d8..c304bdb 100644
 --- a/device.c
 +++ b/device.c
 @@ -72,12 +72,22 @@ cDevice *cDevice::device[MAXDEVICES] = { NULL };
@@ -148,19 +148,7 @@ index 0759993..764cf98 100644
    if (sectionHandler)
       sectionHandler->Detach(Filter);
  }
-@@ -613,6 +667,11 @@ bool cDevice::ProvidesChannel(const cChannel *Channel, int Priority, bool *Needs
-   return false;
- }
- 
-+bool cDevice::ProvidesEIT(void) const
-+{
-+  return false;
-+}
-+
- int cDevice::NumProvidedSystems(void) const
- {
-   return 0;
-@@ -730,6 +789,7 @@ eSetChannelResult cDevice::SetChannel(const cChannel *Channel, bool LiveView)
+@@ -735,6 +789,7 @@ eSetChannelResult cDevice::SetChannel(const cChannel *Channel, bool LiveView)
          sectionHandler->SetStatus(false);
          sectionHandler->SetChannel(NULL);
          }
@@ -168,7 +156,7 @@ index 0759993..764cf98 100644
       // Tell the camSlot about the channel switch and add all PIDs of this
       // channel to it, for possible later decryption:
       if (camSlot)
-@@ -776,8 +836,10 @@ void cDevice::ForceTransferMode(void)
+@@ -781,8 +836,10 @@ void cDevice::ForceTransferMode(void)
  {
    if (!cTransferControl::ReceiverDevice()) {
       cChannel *Channel = Channels.GetByNumber(CurrentChannel());
@@ -180,7 +168,7 @@ index 0759993..764cf98 100644
       }
  }
  
-@@ -1148,7 +1210,10 @@ bool cDevice::Transferring(void) const
+@@ -1153,7 +1210,10 @@ bool cDevice::Transferring(void) const
  
  bool cDevice::AttachPlayer(cPlayer *Player)
  {
@@ -191,7 +179,7 @@ index 0759993..764cf98 100644
       if (player)
          Detach(player);
       DELETENULL(liveSubtitle);
-@@ -1167,6 +1232,8 @@ bool cDevice::AttachPlayer(cPlayer *Player)
+@@ -1172,6 +1232,8 @@ bool cDevice::AttachPlayer(cPlayer *Player)
  
  void cDevice::Detach(cPlayer *Player)
  {
@@ -200,7 +188,7 @@ index 0759993..764cf98 100644
    if (Player && player == Player) {
       cPlayer *p = player;
       player = NULL; // avoids recursive calls to Detach()
-@@ -1186,6 +1253,8 @@ void cDevice::Detach(cPlayer *Player)
+@@ -1191,6 +1253,8 @@ void cDevice::Detach(cPlayer *Player)
  
  void cDevice::StopReplay(void)
  {
@@ -209,7 +197,7 @@ index 0759993..764cf98 100644
    if (player) {
       Detach(player);
       if (IsPrimaryDevice())
-@@ -1468,6 +1537,8 @@ int cDevice::PlayTs(const uchar *Data, int Length, bool VideoOnly)
+@@ -1473,6 +1537,8 @@ int cDevice::PlayTs(const uchar *Data, int Length, bool VideoOnly)
  
  int cDevice::Priority(void) const
  {
@@ -218,7 +206,7 @@ index 0759993..764cf98 100644
    int priority = IsPrimaryDevice() ? Setup.PrimaryLimit - 1 : DEFAULTPRIORITY;
    for (int i = 0; i < MAXRECEIVERS; i++) {
        if (receiver[i])
-@@ -1483,6 +1554,8 @@ bool cDevice::Ready(void)
+@@ -1488,6 +1554,8 @@ bool cDevice::Ready(void)
  
  bool cDevice::Receiving(bool CheckAny) const
  {
@@ -227,7 +215,7 @@ index 0759993..764cf98 100644
    for (int i = 0; i < MAXRECEIVERS; i++) {
        if (receiver[i] && (CheckAny || receiver[i]->priority >= 0)) // cReceiver with priority < 0 doesn't count
           return true;
-@@ -1562,10 +1635,13 @@ bool cDevice::GetTSPacket(uchar *&Data)
+@@ -1567,10 +1635,13 @@ bool cDevice::GetTSPacket(uchar *&Data)
  
  bool cDevice::AttachReceiver(cReceiver *Receiver)
  {
@@ -241,7 +229,7 @@ index 0759993..764cf98 100644
  // activate the following line if you need it - actually the driver should be fixed!
  //#define WAIT_FOR_TUNER_LOCK
  #ifdef WAIT_FOR_TUNER_LOCK
-@@ -1604,6 +1680,8 @@ bool cDevice::AttachReceiver(cReceiver *Receiver)
+@@ -1609,6 +1680,8 @@ bool cDevice::AttachReceiver(cReceiver *Receiver)
  
  void cDevice::Detach(cReceiver *Receiver)
  {
@@ -250,7 +238,7 @@ index 0759993..764cf98 100644
    if (!Receiver || Receiver->device != this)
       return;
    bool receiversLeft = false;
-@@ -1629,6 +1707,8 @@ void cDevice::Detach(cReceiver *Receiver)
+@@ -1634,6 +1707,8 @@ void cDevice::Detach(cReceiver *Receiver)
  
  void cDevice::DetachAll(int Pid)
  {
@@ -259,7 +247,7 @@ index 0759993..764cf98 100644
    if (Pid) {
       cMutexLock MutexLock(&mutexReceiver);
       for (int i = 0; i < MAXRECEIVERS; i++) {
-@@ -1641,6 +1721,8 @@ void cDevice::DetachAll(int Pid)
+@@ -1646,6 +1721,8 @@ void cDevice::DetachAll(int Pid)
  
  void cDevice::DetachAllReceivers(void)
  {
@@ -268,7 +256,7 @@ index 0759993..764cf98 100644
    cMutexLock MutexLock(&mutexReceiver);
    for (int i = 0; i < MAXRECEIVERS; i++)
        Detach(receiver[i]);
-@@ -1712,3 +1794,25 @@ uchar *cTSBuffer::Get(void)
+@@ -1717,3 +1794,25 @@ uchar *cTSBuffer::Get(void)
       }
    return NULL;
  }
@@ -295,7 +283,7 @@ index 0759993..764cf98 100644
 +  DynamicDeviceProbes.Del(this, false);
 +}
 diff --git a/device.h b/device.h
-index d937e5f..a363c06 100644
+index fd587a8..7f25b19 100644
 --- a/device.h
 +++ b/device.h
 @@ -163,7 +163,6 @@ private:
@@ -316,18 +304,7 @@ index d937e5f..a363c06 100644
    int DeviceNumber(void) const;
           ///< Returns the number of this device (0 ... numDevices).
    virtual bool HasDecoder(void) const;
-@@ -247,6 +243,10 @@ public:
-          ///< function itself actually returns true.
-          ///< The default implementation always returns false, so a derived cDevice
-          ///< class that can provide channels must implement this function.
-+  virtual bool ProvidesEIT(void) const;
-+         ///< Returns true if this device provides EIT data and thus wants to be tuned
-+         ///< to the channels it can receive regularly to update the data.
-+         ///< The default implementation returns false.
-   virtual int NumProvidedSystems(void) const;
-          ///< Returns the number of individual "delivery systems" this device provides.
-          ///< The default implementation returns 0, so any derived class that can
-@@ -378,9 +378,6 @@ public:
+@@ -382,9 +378,6 @@ public:
           ///< Returns true if this device has a Common Interface.
    void SetCamSlot(cCamSlot *CamSlot);
           ///< Sets the given CamSlot to be used with this device.
@@ -337,7 +314,7 @@ index d937e5f..a363c06 100644
  
  // Image Grab facilities
  
-@@ -536,9 +533,6 @@ private:
+@@ -540,9 +533,6 @@ private:
    cTsToPes tsToPesSubtitle;
    bool isPlayingVideo;
  protected:
@@ -347,7 +324,7 @@ index d937e5f..a363c06 100644
    virtual bool CanReplay(void) const;
         ///< Returns true if this device can currently start a replay session.
    virtual bool SetPlayMode(ePlayMode PlayMode);
-@@ -724,6 +718,38 @@ public:
+@@ -728,6 +718,38 @@ public:
         ///< Detaches all receivers from this device for this pid.
    void DetachAllReceivers(void);
         ///< Detaches all receivers from this device.
@@ -386,7 +363,7 @@ index d937e5f..a363c06 100644
    };
  
  /// Derived cDevice classes that can receive channels will have to provide
-@@ -747,4 +773,47 @@ public:
+@@ -751,4 +773,47 @@ public:
    uchar *Get(void);
    };
  
@@ -576,7 +553,7 @@ index adbe40d..6d117b2 100644
  
  #endif //__DVBCI_H
 diff --git a/dvbdevice.c b/dvbdevice.c
-index b0750dd..7ad6ccc 100644
+index a97f274..f1567c3 100644
 --- a/dvbdevice.c
 +++ b/dvbdevice.c
 @@ -272,23 +272,31 @@ private:
@@ -799,20 +776,17 @@ index b0750dd..7ad6ccc 100644
  bool cDvbDevice::HasCi(void)
  {
    return ciAdapter;
-@@ -1081,6 +1159,11 @@ bool cDvbDevice::ProvidesChannel(const cChannel *Channel, int Priority, bool *Ne
-   return result;
+@@ -1083,7 +1161,7 @@ bool cDvbDevice::ProvidesChannel(const cChannel *Channel, int Priority, bool *Ne
+ 
+ bool cDvbDevice::ProvidesEIT(void) const
+ {
+-  return dvbTuner != NULL;
++  return !IsIdle() && (dvbTuner != NULL) && !dvbTuner->IsIdle() && ((ciAdapter == NULL) || !ciAdapter->IsIdle());
  }
  
-+bool cDvbDevice::ProvidesEIT(void) const
-+{
-+  return !IsIdle() && (dvbTuner != NULL) && !dvbTuner->IsIdle() && ((ciAdapter == NULL) || !ciAdapter->IsIdle());
-+}
-+
  int cDvbDevice::NumProvidedSystems(void) const
- {
-   return numProvidedSystems;
 diff --git a/dvbdevice.h b/dvbdevice.h
-index 0962548..8015a89 100644
+index e1842b7..10204a4 100644
 --- a/dvbdevice.h
 +++ b/dvbdevice.h
 @@ -102,7 +102,7 @@ class cDvbTuner;
@@ -838,24 +812,3 @@ index 0962548..8015a89 100644
  // Common Interface facilities:
  
  private:
-@@ -140,6 +142,7 @@ public:
-   virtual bool ProvidesSource(int Source) const;
-   virtual bool ProvidesTransponder(const cChannel *Channel) const;
-   virtual bool ProvidesChannel(const cChannel *Channel, int Priority = -1, bool *NeedsDetachReceivers = NULL) const;
-+  virtual bool ProvidesEIT(void) const;
-   virtual int NumProvidedSystems(void) const;
-   virtual int SignalStrength(void) const;
-   virtual int SignalQuality(void) const;
-diff --git a/eitscan.c b/eitscan.c
-index 25b7115..5526ddc 100644
---- a/eitscan.c
-+++ b/eitscan.c
-@@ -143,7 +143,7 @@ void cEITScanner::Process(void)
-            bool AnyDeviceSwitched = false;
-            for (int i = 0; i < cDevice::NumDevices(); i++) {
-                cDevice *Device = cDevice::GetDevice(i);
--               if (Device) {
-+               if (Device && Device->ProvidesEIT()) {
-                   for (cScanData *ScanData = scanList->First(); ScanData; ScanData = scanList->Next(ScanData)) {
-                       const cChannel *Channel = ScanData->GetChannel();
-                       if (Channel) {

@@ -184,3 +184,7 @@ VDR Plugin 'dynamite' Revision History
 2011-09-04: Version 0.0.7c
 
 - auto-wakeup and idle-again now works correctly if the device is not used with "OpenDvr" in the meantime
+
+2011-09-04: Version 0.0.8
+
+- add patch for vdr 1.7.21

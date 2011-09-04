@@ -67,7 +67,7 @@ public:
   void DeleteSubDevice(void);
   bool IsDetachable(void) const { return isDetachable; }
   virtual bool SetIdleDevice(bool Idle, bool TestOnly);
-  virtual bool CanScanForEPG(void) const;
+  virtual bool ProvidesEIT(void) const;
 protected:
   virtual ~cDynamicDevice();
   virtual bool Ready(void);

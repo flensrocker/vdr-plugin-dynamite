@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.7c";
+static const char *VERSION        = "0.0.8";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 

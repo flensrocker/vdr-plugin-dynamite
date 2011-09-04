@@ -532,10 +532,10 @@ bool cDynamicDevice::SetIdleDevice(bool Idle, bool TestOnly)
   return false;
 }
 
-bool cDynamicDevice::CanScanForEPG(void) const
+bool cDynamicDevice::ProvidesEIT(void) const
 {
   if (subDevice)
-     return subDevice->CanScanForEPG();
+     return subDevice->ProvidesEIT();
   return false;
 }
 
