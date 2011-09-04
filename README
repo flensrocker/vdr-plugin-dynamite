@@ -196,6 +196,8 @@ dynamite.DefaultGetTSTimeout = 0
 dynamite.GetTSTimeoutHandler = /path/to/program
 dynamite.FreeDeviceSlots = 0
 dynamite.IdleHook = /path/to/program
+dynamite.IdleTimeout = 0
+dynamite.IdleWakeup = 0
 
 Commandline Arguments
 ---------------------
@@ -212,6 +214,10 @@ Commandline Arguments
         incompatible plugins
 -i, --idle-hook=/path/to/program
         set program to be called on SetIdle and reactivation
+-I, --idle-timeout=m
+        if a device is unused for m minutes set it to idle
+-W, --idle-wakeup=h
+        if a device is idle for h hours wake it up (e.g. for EPG scan)
 
 Idle mode
 ---------
@@ -285,4 +291,4 @@ me how to do this...
 
 TODO
 ----
-* implement auto-idle-mode
+...

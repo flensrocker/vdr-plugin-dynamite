@@ -170,3 +170,9 @@ VDR Plugin 'dynamite' Revision History
 2011-08-17: Version 0.0.7
 
 - add patch for vdr 1.7.20
+
+2011-09-04: Version 0.0.7a
+
+- add two new parameters to activate the auto-idle-mode
+  --idle-timout=m  set unused devices after m minutes to idle
+  --idle-wakeup=h  waheup idle devices after h hours

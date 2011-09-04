@@ -19,6 +19,8 @@ class cDynamicDevice : public cDevice {
 private:
   static cPlugin *dynamite;
   static int defaultGetTSTimeout;
+  static int idleTimeoutMinutes;
+  static int idleWakeupHours;
   static cString *idleHook;
 
   static int numDynamicDevices;
@@ -40,6 +42,7 @@ public:
   static eDynamicDeviceReturnCode DetachDevice(const char *DevPath, bool Force);
   static eDynamicDeviceReturnCode SetLockDevice(const char *DevPath, bool Lock);
   static eDynamicDeviceReturnCode SetIdle(const char *DevPath, bool Idle);
+  static void AutoIdle(void);
   static eDynamicDeviceReturnCode SetGetTSTimeout(const char *DevPath, int Seconds);
   static void SetDefaultGetTSTimeout(int Seconds);
   static eDynamicDeviceReturnCode SetGetTSTimeoutHandlerArg(const char *DevPath, const char *Arg);
@@ -52,6 +55,8 @@ private:
   time_t   getTSWatchdog;
   int      getTSTimeout;
   bool     restartSectionHandler;
+  time_t   lastCloseDvr; // for auto-idle
+  time_t   idleSince;
   void ReadUdevProperties(void);
   void InternSetGetTSTimeout(int Seconds);
   void InternSetGetTSTimeoutHandlerArg(const char *Arg);

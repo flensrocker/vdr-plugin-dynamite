@@ -6,6 +6,8 @@
 
 cPlugin *cDynamicDevice::dynamite = NULL;
 int cDynamicDevice::defaultGetTSTimeout = 0;
+int cDynamicDevice::idleTimeoutMinutes = 0;
+int cDynamicDevice::idleWakeupHours = 0;
 cString *cDynamicDevice::idleHook = NULL;
 cDvbDeviceProbe *cDynamicDevice::dvbprobe = NULL;
 bool cDynamicDevice::enableOsdMessages = false;
@@ -213,6 +215,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath)
   return ddrcNotSupported;
 
 attach:
+  dynamicdevice[freeIndex]->lastCloseDvr = time(NULL);
   while (!dynamicdevice[freeIndex]->Ready())
         cCondWait::SleepMs(2);
   dynamicdevice[freeIndex]->devpath = new cString(DevPath);
@@ -322,8 +325,43 @@ eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
      }
   else if (idleHook && !Idle)
      CallIdleHook(**idleHook, dynamicdevice[index]->GetDevPath(), Idle);
-
+  if (Idle)
+     dynamicdevice[index]->idleSince = time(NULL);
+  else
+     dynamicdevice[index]->idleSince = 0;
   return ddrcSuccess;
+}
+
+void cDynamicDevice::AutoIdle(void)
+{
+  if (idleTimeoutMinutes <= 0)
+     return;
+  cMutexLock lock(&arrayMutex);
+  time_t now = time(NULL);
+  bool wokeupSomeDevice = false;
+  for (int i = 0; i < numDynamicDevices; i++) {
+      if (dynamicdevice[i]->devpath != NULL) {
+         if (dynamicdevice[i]->IsIdle()) {
+            int hours = 3600 * (now - dynamicdevice[i]->idleSince);
+            if ((dynamicdevice[i]->idleSince > 0) && (hours >= idleWakeupHours)) {
+               isyslog("dynamite: device %s idle for %d hours, waking up", dynamicdevice[i]->GetDevPath(), hours);
+               cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetNotIdle-v0.1 %s", dynamicdevice[i]->GetDevPath()));
+               wokeupSomeDevice = true;
+               }
+            }
+         else {
+            int minutes = 60 * (now - dynamicdevice[i]->lastCloseDvr);
+            if ((dynamicdevice[i]->lastCloseDvr > 0) && (minutes >= idleTimeoutMinutes)) {
+               isyslog("dynamite: device %s unused for %d minutes, set to idle", dynamicdevice[i]->GetDevPath(), minutes);
+               cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetIdle-v0.1 %s", dynamicdevice[i]->GetDevPath()));
+               }
+            }
+         }
+      }
+
+  if (wokeupSomeDevice) {
+     // initiate epg-scan?
+     }
 }
 
 eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeout(const char *DevPath, int Seconds)
@@ -888,6 +926,7 @@ bool cDynamicDevice::Ready(void)
 
 bool cDynamicDevice::OpenDvr(void)
 {
+  lastCloseDvr = 0;
   if (subDevice) {
      getTSWatchdog = 0;
      return subDevice->OpenDvr();
@@ -897,6 +936,7 @@ bool cDynamicDevice::OpenDvr(void)
 
 void cDynamicDevice::CloseDvr(void)
 {
+  lastCloseDvr = time(NULL);
   if (subDevice)
      return subDevice->CloseDvr();
   cDevice::CloseDvr();

@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.7";
+static const char *VERSION        = "0.0.7a";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -69,6 +69,7 @@ private:
   cDynamiteDeviceProbe *probe;
   cString *getTSTimeoutHandler;
   int  freeDeviceSlots;
+  int  lastHousekeeping;
 public:
   cPluginDynamite(void);
   virtual ~cPluginDynamite();
@@ -96,6 +97,7 @@ cPluginDynamite::cPluginDynamite(void)
 :probe(NULL)
 ,getTSTimeoutHandler(NULL)
 ,freeDeviceSlots(0)
+,lastHousekeeping(0)
 {
   cDynamicDevice::dynamite = this;
   cDynamicDevice::dvbprobe = new cDynamiteDvbDeviceProbe;
@@ -129,7 +131,11 @@ const char *cPluginDynamite::CommandLineHelp(void)
          "  --free-device-slots=n\n"
          "    leave n slots free for non-dynamic devices\n"
          "  --idle-hook=/path/to/program\n"
-         "    set program to be called on SetIdle and reactivation";
+         "    set program to be called on SetIdle and reactivation\n"
+         "  --idle-timeout=m\n"
+         "    if a device is unused for m minutes set it to idle\n"
+         "  --idle-wakeup=h\n"
+         "    if a device is idle for h hours wake it up (e.g. for EPG scan)";
 }
 
 bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
@@ -142,12 +148,14 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
     {"GetTSTimeoutHandler", required_argument, 0, 'h'},
     {"free-device-slots", required_argument, 0, 'f'},
     {"idle-hook", required_argument, 0, 'i'},
+    {"idle-timeout", required_argument, 0, 'I'},
+    {"idle-wakeup", required_argument, 0, 'W'},
     {0, 0, 0, 0}
   };
 
   while (true) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "udt:h:f:i:", options, &option_index);
+        int c = getopt_long(argc, argv, "udt:h:f:i:I:W:", options, &option_index);
         if (c == -1)
            break;
         switch (c) {
@@ -199,6 +207,24 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
              if (optarg != NULL) {
                 cDynamicDevice::idleHook = new cString(optarg);
                 isyslog("dynamite: installing idle-hook %s", **cDynamicDevice::idleHook);
+                }
+             break;
+           }
+          case 'I':
+           {
+             if ((optarg != NULL) && isnumber(optarg)) {
+                int tmp = strtol(optarg, NULL, 10);
+                if (tmp >= 0)
+                   cDynamicDevice::idleTimeoutMinutes = tmp;
+                }
+             break;
+           }
+          case 'W':
+           {
+             if ((optarg != NULL) && isnumber(optarg)) {
+                int tmp = strtol(optarg, NULL, 10);
+                if (tmp >= 0)
+                   cDynamicDevice::idleWakeupHours = tmp;
                 }
              break;
            }
@@ -257,7 +283,11 @@ void cPluginDynamite::Stop(void)
 
 void cPluginDynamite::Housekeeping(void)
 {
-  // Perform any cleanup or other regular tasks.
+  int now = time(NULL);
+  if ((lastHousekeeping == 0) || ((now - lastHousekeeping) > 60)) {
+     cDynamicDevice::AutoIdle();
+     lastHousekeeping = now;
+     }
 }
 
 void cPluginDynamite::MainThreadHook(void)
@@ -323,6 +353,16 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
         cDynamicDevice::idleHook = new cString(Value);
         isyslog("dynamite: installing idle-hook %s", **cDynamicDevice::idleHook);
         }
+     }
+  else if (strcasecmp(Name, "IdleTimeout") == 0) {
+     int tmp = strtol(Value, NULL, 10);
+     if (tmp >= 0)
+        cDynamicDevice::idleTimeoutMinutes = tmp;
+     }
+  else if (strcasecmp(Name, "IdleWakeup") == 0) {
+     int tmp = strtol(Value, NULL, 10);
+     if (tmp >= 0)
+        cDynamicDevice::idleWakeupHours = tmp;
      }
   else
      return false;
