@@ -227,7 +227,7 @@ Commandline Arguments
 -i, --idle-hook=/path/to/program
         set program to be called on SetIdle and reactivation
 -I, --idle-timeout=m
-        if a device is unused for m minutes set it to idle
+        if a device is unused for m minutes set it to idle, 0 disables auto-idle (default)
 -W, --idle-wakeup=h
         if a device is idle for h hours wake it up (e.g. for EPG scan)
 
