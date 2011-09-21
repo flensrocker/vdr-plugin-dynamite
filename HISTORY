@@ -188,3 +188,7 @@ VDR Plugin 'dynamite' Revision History
 2011-09-04: Version 0.0.8
 
 - add patch for vdr 1.7.21
+
+2011-09-21: Version 0.0.8a
+
+- add SVDRP/Service commands SetIdleTimeout and SetIdleWakeup to modify the values on the fly

@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.8";
+static const char *VERSION        = "0.0.8a";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -133,7 +133,7 @@ const char *cPluginDynamite::CommandLineHelp(void)
          "  --idle-hook=/path/to/program\n"
          "    set program to be called on SetIdle and reactivation\n"
          "  --idle-timeout=m\n"
-         "    if a device is unused for m minutes set it to idle\n"
+         "    if a device is unused for m minutes set it to idle, 0 disables auto-idle (default)\n"
          "  --idle-wakeup=h\n"
          "    if a device is idle for h hours wake it up (e.g. for EPG scan)";
 }
@@ -214,8 +214,13 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
            {
              if ((optarg != NULL) && isnumber(optarg)) {
                 int tmp = strtol(optarg, NULL, 10);
-                if (tmp >= 0)
+                if (tmp >= 0) {
                    cDynamicDevice::idleTimeoutMinutes = tmp;
+                   if (tmp == 0)
+                      isyslog("dynamite: disable auto-idle-mode");
+                   else
+                      isyslog("dynamite: setting auto-idle-timeout to %d minute%s", cDynamicDevice::idleTimeoutMinutes, (cDynamicDevice::idleTimeoutMinutes > 1) ? "s" : "");
+                   }
                 }
              break;
            }
@@ -223,8 +228,10 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
            {
              if ((optarg != NULL) && isnumber(optarg)) {
                 int tmp = strtol(optarg, NULL, 10);
-                if (tmp >= 0)
+                if (tmp > 0) {
                    cDynamicDevice::idleWakeupHours = tmp;
+                   isyslog("dynamite: setting auto-idle-wakeup to %d hour%s", cDynamicDevice::idleWakeupHours, (cDynamicDevice::idleWakeupHours > 1) ? "s" : "");
+                   }
                 }
              break;
            }
@@ -451,6 +458,20 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
         }
      return true;
      }
+  if (strcmp(Id, "dynamite-SetIdleTimeout-v0.1") == 0) {
+     if (Data != NULL) {
+        int replyCode;
+        SVDRPCommand("SetIdleTimeout", (const char*)Data, replyCode);
+        }
+     return true;
+     }
+  if (strcmp(Id, "dynamite-SetIdleWakeup-v0.1") == 0) {
+     if (Data != NULL) {
+        int replyCode;
+        SVDRPCommand("SetIdleWakeup", (const char*)Data, replyCode);
+        }
+     return true;
+     }
   return false;
 }
 
@@ -522,6 +543,14 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "    Sets the argument for the timout handler program.",
     "CallGetTSTimeoutHandler arg\n"
     "    Calls the timout handler program with the given arguments.",
+    "SIDT minutes\n"
+    "    Sets the timeout for an used device to be switched into idle mode,\n"
+    "    a value of 0 will deactivate the auto-idle-mode.\n"
+    "    alternate command: SetIdleTimeout",
+    "SIDW hours\n"
+    "    Sets the timeout for an idle device to be reactivated,\n"
+    "    a lower interval than 1 hour is not possible.\n"
+    "    alternate command: SetIdleWakeup",
     NULL
     };
   return HelpPages;
@@ -679,6 +708,30 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
      cString msg = cString::sprintf("success on executing %s %s", **getTSTimeoutHandler, Option);
      isyslog("dynamite: %s", *msg);
      return msg;
+     }
+
+  if ((strcasecmp(Command, "SIDT") == 0) || (strcasecmp(Command, "SetIdleTimeout") == 0)) {
+     if (isnumber(Option)) {
+        int minutes = strtol(Option, NULL, 10);
+        if (minutes >= 0) {
+           cDynamicDevice::idleTimeoutMinutes = minutes;
+           return cString::sprintf("set Idle-Timeout to %d minutes", minutes);
+           }
+        ReplyCode = 550;
+        return cString::sprintf("minutes must be greater than or equal to 0");
+        }
+     }
+
+  if ((strcasecmp(Command, "SIDW") == 0) || (strcasecmp(Command, "SetIdleWakeup") == 0)) {
+     if (isnumber(Option)) {
+        int hours = strtol(Option, NULL, 10);
+        if (hours > 0) {
+           cDynamicDevice::idleWakeupHours = hours;
+           return cString::sprintf("set Idle-Wakeup to %d hours", hours);
+           }
+        ReplyCode = 550;
+        return cString::sprintf("hours must be greater than 0");
+        }
      }
 
   return NULL;
