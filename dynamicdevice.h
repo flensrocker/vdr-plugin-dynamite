@@ -19,6 +19,8 @@ class cDynamicDevice : public cDevice {
 private:
   static cPlugin *dynamite;
   static int defaultGetTSTimeout;
+  static int idleTimeoutMinutes;
+  static int idleWakeupHours;
   static cString *idleHook;
 
   static int numDynamicDevices;
@@ -40,6 +42,7 @@ public:
   static eDynamicDeviceReturnCode DetachDevice(const char *DevPath, bool Force);
   static eDynamicDeviceReturnCode SetLockDevice(const char *DevPath, bool Lock);
   static eDynamicDeviceReturnCode SetIdle(const char *DevPath, bool Idle);
+  static void AutoIdle(void);
   static eDynamicDeviceReturnCode SetGetTSTimeout(const char *DevPath, int Seconds);
   static void SetDefaultGetTSTimeout(int Seconds);
   static eDynamicDeviceReturnCode SetGetTSTimeoutHandlerArg(const char *DevPath, const char *Arg);
@@ -52,6 +55,8 @@ private:
   time_t   getTSWatchdog;
   int      getTSTimeout;
   bool     restartSectionHandler;
+  time_t   lastCloseDvr; // for auto-idle
+  time_t   idleSince;
   void ReadUdevProperties(void);
   void InternSetGetTSTimeout(int Seconds);
   void InternSetGetTSTimeoutHandlerArg(const char *Arg);
@@ -62,19 +67,22 @@ public:
   void DeleteSubDevice(void);
   bool IsDetachable(void) const { return isDetachable; }
   virtual bool SetIdleDevice(bool Idle, bool TestOnly);
-  virtual bool CanScanForEPG(void) const;
+  virtual bool ProvidesEIT(void) const;
 protected:
   virtual ~cDynamicDevice();
   virtual bool Ready(void);
   virtual void MakePrimaryDevice(bool On);
 public:
   virtual bool HasDecoder(void) const;
+  virtual bool AvoidRecording(void) const;
   virtual cSpuDecoder *GetSpuDecoder(void);
   virtual bool ProvidesSource(int Source) const;
   virtual bool ProvidesTransponder(const cChannel *Channel) const;
   virtual bool ProvidesTransponderExclusively(const cChannel *Channel) const;
   virtual bool ProvidesChannel(const cChannel *Channel, int Priority = -1, bool *NeedsDetachReceivers = NULL) const;
   virtual int NumProvidedSystems(void) const;
+  virtual int SignalStrength(void) const;
+  virtual int SignalQuality(void) const;
   virtual const cChannel *GetCurrentlyTunedTransponder(void) const;
   virtual bool IsTunedToTransponder(const cChannel *Channel);
   virtual bool MaySwitchTransponder(void);

@@ -6,6 +6,8 @@
 
 cPlugin *cDynamicDevice::dynamite = NULL;
 int cDynamicDevice::defaultGetTSTimeout = 0;
+int cDynamicDevice::idleTimeoutMinutes = 0;
+int cDynamicDevice::idleWakeupHours = 0;
 cString *cDynamicDevice::idleHook = NULL;
 cDvbDeviceProbe *cDynamicDevice::dvbprobe = NULL;
 bool cDynamicDevice::enableOsdMessages = false;
@@ -213,6 +215,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath)
   return ddrcNotSupported;
 
 attach:
+  dynamicdevice[freeIndex]->lastCloseDvr = time(NULL);
   while (!dynamicdevice[freeIndex]->Ready())
         cCondWait::SleepMs(2);
   dynamicdevice[freeIndex]->devpath = new cString(DevPath);
@@ -322,8 +325,51 @@ eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
      }
   else if (idleHook && !Idle)
      CallIdleHook(**idleHook, dynamicdevice[index]->GetDevPath(), Idle);
-
+  if (Idle) {
+     dynamicdevice[index]->idleSince = time(NULL);
+     dynamicdevice[index]->lastCloseDvr = dynamicdevice[index]->idleSince;
+     }
+  else {
+     dynamicdevice[index]->idleSince = 0;
+     dynamicdevice[index]->lastCloseDvr = time(NULL);
+     }
   return ddrcSuccess;
+}
+
+void cDynamicDevice::AutoIdle(void)
+{
+  if (idleTimeoutMinutes <= 0)
+     return;
+  cMutexLock lock(&arrayMutex);
+  time_t now = time(NULL);
+  bool wokeupSomeDevice = false;
+  int seconds = 0;
+  for (int i = 0; i < numDynamicDevices; i++) {
+      if (dynamicdevice[i]->devpath != NULL) {
+         if (dynamicdevice[i]->IsIdle()) {
+            seconds = now - dynamicdevice[i]->idleSince;
+            if ((dynamicdevice[i]->idleSince > 0) && (seconds >= (idleWakeupHours * 3600))) {
+               isyslog("dynamite: device %s idle for %d hours, waking up", dynamicdevice[i]->GetDevPath(), seconds / 3600);
+               cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetNotIdle-v0.1 %s", dynamicdevice[i]->GetDevPath()));
+               wokeupSomeDevice = true;
+               }
+            }
+         else {
+            seconds = now - dynamicdevice[i]->lastCloseDvr;
+            if ((dynamicdevice[i]->lastCloseDvr > 0) && (seconds >= (idleTimeoutMinutes * 60))) {
+               if (dynamicdevice[i]->lastCloseDvr > 0)
+                  isyslog("dynamite: device %s unused for %d minutes, set to idle", dynamicdevice[i]->GetDevPath(), seconds / 60);
+               else
+                  isyslog("dynamite: device %s never used , set to idle", dynamicdevice[i]->GetDevPath());
+               cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-SetIdle-v0.1 %s", dynamicdevice[i]->GetDevPath()));
+               }
+            }
+         }
+      }
+
+  if (wokeupSomeDevice) {
+     // initiate epg-scan?
+     }
 }
 
 eDynamicDeviceReturnCode cDynamicDevice::SetGetTSTimeout(const char *DevPath, int Seconds)
@@ -487,10 +533,10 @@ bool cDynamicDevice::SetIdleDevice(bool Idle, bool TestOnly)
   return false;
 }
 
-bool cDynamicDevice::CanScanForEPG(void) const
+bool cDynamicDevice::ProvidesEIT(void) const
 {
   if (subDevice)
-     return subDevice->CanScanForEPG();
+     return subDevice->ProvidesEIT();
   return false;
 }
 
@@ -506,6 +552,13 @@ bool cDynamicDevice::HasDecoder(void) const
   if (subDevice)
      return subDevice->HasDecoder();
   return cDevice::HasDecoder();
+}
+
+bool cDynamicDevice::AvoidRecording(void) const
+{
+  if (subDevice)
+     return subDevice->AvoidRecording();
+  return cDevice::AvoidRecording();
 }
 
 cSpuDecoder *cDynamicDevice::GetSpuDecoder(void)
@@ -618,6 +671,20 @@ int cDynamicDevice::NumProvidedSystems(void) const
   if (subDevice)
      return subDevice->NumProvidedSystems();
   return cDevice::NumProvidedSystems();
+}
+
+int cDynamicDevice::SignalStrength(void) const
+{
+  if (subDevice)
+     return subDevice->SignalStrength();
+  return cDevice::SignalStrength();
+}
+
+int cDynamicDevice::SignalQuality(void) const
+{
+  if (subDevice)
+     return subDevice->SignalQuality();
+  return cDevice::SignalQuality();
 }
 
 const cChannel *cDynamicDevice::GetCurrentlyTunedTransponder(void) const
@@ -867,6 +934,7 @@ bool cDynamicDevice::Ready(void)
 
 bool cDynamicDevice::OpenDvr(void)
 {
+  lastCloseDvr = 0;
   if (subDevice) {
      getTSWatchdog = 0;
      return subDevice->OpenDvr();
@@ -876,6 +944,7 @@ bool cDynamicDevice::OpenDvr(void)
 
 void cDynamicDevice::CloseDvr(void)
 {
+  lastCloseDvr = time(NULL);
   if (subDevice)
      return subDevice->CloseDvr();
   cDevice::CloseDvr();

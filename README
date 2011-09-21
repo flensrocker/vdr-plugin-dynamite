@@ -168,6 +168,18 @@ SetGetTSTimeoutHandlerArg /dev/path/to/device arg
 CallGetTSTimeoutHandler arg
     Calls the timout handler program with the given arguments.
 
+"dynamite-SetIdleTimeout-v0.1"
+SIDT minutes
+    Sets the timeout for an used device to be switched into idle mode,
+    a value of 0 will deactivate the auto-idle-mode.
+    alternate command: SetIdleTimeout
+
+"dynamite-SetIdleWakeup-v0.1"
+SIDW hours
+    Sets the timeout for an idle device to be reactivated,
+    a lower interval than 1 hour is not possible.
+    alternate command: SetIdleWakeup
+
 Don't forget to prefix them with "plug dynamite"...
 
 Controlling dynamite with the OSD
@@ -196,6 +208,8 @@ dynamite.DefaultGetTSTimeout = 0
 dynamite.GetTSTimeoutHandler = /path/to/program
 dynamite.FreeDeviceSlots = 0
 dynamite.IdleHook = /path/to/program
+dynamite.IdleTimeout = 0
+dynamite.IdleWakeup = 0
 
 Commandline Arguments
 ---------------------
@@ -212,6 +226,10 @@ Commandline Arguments
         incompatible plugins
 -i, --idle-hook=/path/to/program
         set program to be called on SetIdle and reactivation
+-I, --idle-timeout=m
+        if a device is unused for m minutes set it to idle
+-W, --idle-wakeup=h
+        if a device is idle for h hours wake it up (e.g. for EPG scan)
 
 Idle mode
 ---------
@@ -221,11 +239,19 @@ method SetIdleDevice. E.g. cDvbDevice will close its frontend so the driver
 can enable a power-save mode. And it has been observed that some tuners are
 a lot cooler, so it must be good. :-)
 An idle device will be ignored by the EIT scanner but will be reactivated
-if it must be used for a recording etc.
+if it's needed for a recording etc.
 You can set a programm to be called on every idle-switch. It will receive
 the parameters
   --idle=[on|off]
   --device=/dev/path/to/device
+
+If you have set an idle-timeout and idle-wakeup value greater than 0, dynamite
+will try to deactivate unused devices on its own. In sporadic intervals it will
+test all devices if their "CloseDvr" was last called "idle-minutes" ago (or
+OpenDvr got called at all).
+After a minimum of "idle-wakeup" hours the device will be reactivated so it can
+be used by the EIT scanner or similar modules. The wakeup cannot be disabled,
+only a minimum of one hour can be specified.
 
 "GetTS" watchdog
 ----------------
@@ -285,4 +311,4 @@ me how to do this...
 
 TODO
 ----
-* implement auto-idle-mode
+...

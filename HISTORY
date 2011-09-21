@@ -10,7 +10,7 @@ VDR Plugin 'dynamite' Revision History
 
 2011-01-08: Version 0.0.4a
 
-- rework patch for vdr to it won't collide with other patches
+- rework patch for vdr so it won't collide with other patches
 - LSTD outputs an asterisk behind the number of the primary device
 - the number corresponds to the index in the array so it won't
   change for one device if others are attached/detached.
@@ -162,3 +162,33 @@ VDR Plugin 'dynamite' Revision History
 - add italian translations (thanks to Diego Pierotto)
 - add commandline arg --idle-hook=/path/to/program
   and as parameter "dynamite.IdleHook = /path/to/program" at setup.conf
+
+2011-08-17: Version 0.0.6h
+
+- add patch for vdr 1.7.19 and add support for new virtual methods of cDevice
+
+2011-08-17: Version 0.0.7
+
+- add patch for vdr 1.7.20
+
+2011-09-04: Version 0.0.7a
+
+- add two new parameters to activate the auto-idle-mode
+  --idle-timout=m  set unused devices after m minutes to idle
+  --idle-wakeup=h  waheup idle devices after h hours
+
+2011-09-04: Version 0.0.7b
+
+- correct timeout evaluation for auto-idle
+
+2011-09-04: Version 0.0.7c
+
+- auto-wakeup and idle-again now works correctly if the device is not used with "OpenDvr" in the meantime
+
+2011-09-04: Version 0.0.8
+
+- add patch for vdr 1.7.21
+
+2011-09-21: Version 0.0.8a
+
+- add SVDRP/Service commands SetIdleTimeout and SetIdleWakeup to modify the values on the fly
