@@ -291,7 +291,9 @@ void cPluginDynamite::Stop(void)
 void cPluginDynamite::Housekeeping(void)
 {
   int now = time(NULL);
-  if ((lastHousekeeping == 0) || ((now - lastHousekeeping) > 60)) {
+  if (lastHousekeeping == 0)
+     lastHousekeeping = now;
+  else if ((now - lastHousekeeping) > 60) {
      cDynamicDevice::AutoIdle();
      lastHousekeeping = now;
      }
