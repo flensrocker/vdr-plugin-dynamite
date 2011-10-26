@@ -50,6 +50,7 @@ public:
 private:
   int index;
   cString *devpath;
+  cString *udevRemoveSyspath;
   cString *getTSTimeoutHandlerArg;
   bool     isDetachable;
   time_t   getTSWatchdog;

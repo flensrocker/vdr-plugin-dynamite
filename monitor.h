@@ -27,6 +27,7 @@ protected:
 public:
   static cUdevMonitor *Get(const char *Subsystem);
   static bool AddFilter(const char *Subsystem, cUdevFilter *Filter);
+  static bool DelFilter(const char *Subsystem, cUdevFilter *Filter);
   static void ShutdownAllMonitors(void);
 
   virtual ~cUdevMonitor(void);
@@ -53,6 +54,27 @@ protected:
 class cUdevDvbFilter : public cUdevFilter {
 protected:
   virtual void Process(cUdevDevice &Device);
+  };
+
+class cUdevUsbRemoveFilter : public cUdevFilter {
+private:
+  class cItem : public cListObject {
+  public:
+    cString *item;
+    cString *devpath;
+    cItem(const char *i, const char *d);
+    virtual ~cItem(void);
+    };
+
+  static cMutex mutexFilter;
+  static cUdevUsbRemoveFilter *filter;
+  cMutex mutexItems;
+  cList<cItem>  items;
+protected:
+  virtual void Process(cUdevDevice &Device);
+public:
+  static void AddItem(const char *item, const char *devpath);
+  static void RemoveItem(const char *item, const char *devpath);
   };
 
 class cUdevPatternFilter : public cUdevFilter {

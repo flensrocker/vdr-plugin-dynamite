@@ -74,6 +74,13 @@ const char  *cUdevDevice::GetDevnode(void) const
   return udev_device_get_devnode(device);
 }
 
+const char  *cUdevDevice::GetDevpath(void) const
+{
+  if (device == NULL)
+     return false;
+  return udev_device_get_devpath(device);
+}
+
 cUdevDevice *cUdevDevice::GetParent(void) const
 {
   if (device == NULL)
@@ -89,6 +96,20 @@ const char *cUdevDevice::GetPropertyValue(const char *Key) const
   if (device == NULL)
      return false;
   return udev_device_get_property_value(device, Key);
+}
+
+const char *cUdevDevice::GetSubsystem(void) const
+{
+  if (device == NULL)
+     return false;
+  return udev_device_get_subsystem(device);
+}
+
+const char *cUdevDevice::GetSysname(void) const
+{
+  if (device == NULL)
+     return false;
+  return udev_device_get_sysname(device);
 }
 
 const char *cUdevDevice::GetSyspath(void) const

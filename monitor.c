@@ -49,6 +49,22 @@ bool cUdevMonitor::AddFilter(const char *Subsystem, cUdevFilter *Filter)
   return true;
 }
 
+bool cUdevMonitor::DelFilter(const char *Subsystem, cUdevFilter *Filter)
+{
+  if (Filter == NULL)
+     return false;
+  cUdevMonitor *m = Get(Subsystem);
+  if (m == NULL) {
+     delete Filter;
+     return false;
+     }
+  if (!m->DelFilter(Filter)) {
+     delete Filter;
+     return false;
+     }
+  return true;
+}
+
 void cUdevMonitor::ShutdownAllMonitors(void)
 {
   cMutexLock lock(&mutexMonitors);
@@ -217,6 +233,78 @@ void cUdevDvbFilter::Process(cUdevDevice &Device)
         return;
      cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, devname);
      }
+}
+
+// --- cUdevUsbRemoveFilter---------------------------------------------------
+
+cUdevUsbRemoveFilter::cItem::cItem(const char *i, const char *d)
+{
+  item = new cString(i);
+  devpath = new cString(d);
+}
+
+cUdevUsbRemoveFilter::cItem::~cItem(void)
+{
+  delete item;
+  delete devpath;
+}
+
+cMutex cUdevUsbRemoveFilter::mutexFilter;
+cUdevUsbRemoveFilter *cUdevUsbRemoveFilter::filter = NULL;
+
+void cUdevUsbRemoveFilter::Process(cUdevDevice &Device)
+{
+  const char *action = Device.GetAction();
+  const char *syspath = Device.GetSyspath();
+  if (action && syspath && (strcmp(action, "remove") == 0)) {
+     isyslog("dynamite: usb remove monitor: action = %s", action);
+     isyslog("dynamite: usb remove monitor: syspath = %s", syspath);
+     cMutexLock lock(&mutexItems);
+     for (cItem *i = items.First(); i; i = items.Next(i)) {
+         if (strcmp(**(i->item), syspath) == 0) {
+            isyslog("dynamite: usb remove monitor: force detach of %s", **(i->devpath));
+            cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-ForceDetachDevice-v0.1 %s", **(i->devpath)));
+            }
+         }
+     }
+}
+
+void cUdevUsbRemoveFilter::AddItem(const char *item, const char *devpath)
+{
+  if ((item == NULL) || (devpath == NULL))
+     return;
+  cMutexLock lock(&mutexFilter);
+  if (filter == NULL) {
+     filter = new cUdevUsbRemoveFilter();
+     if (!cUdevMonitor::AddFilter( "usb", filter)) {
+        delete filter;
+        filter = NULL;
+        return;
+        }
+     }
+  isyslog("dynamite: usb remove monitor: add syspath = %s", item);
+  cMutexLock lock2(&filter->mutexItems);
+  filter->items.Add(new cItem(item, devpath));
+}
+
+void cUdevUsbRemoveFilter::RemoveItem(const char *item, const char *devpath)
+{
+  if ((item == NULL) || (devpath == NULL))
+     return;
+  cMutexLock lock(&mutexFilter);
+  if (filter == NULL)
+     return;
+  cMutexLock lock2(&filter->mutexItems);
+  for (cItem *i = filter->items.First(); i; i = filter->items.Next(i)) {
+      if ((strcmp(**(i->item), item) == 0) && (strcmp(**(i->devpath), devpath) == 0)) {
+         filter->items.Del(i);
+         if (filter->items.Count() == 0) {
+            cUdevMonitor::DelFilter("usb", filter);
+            filter = NULL;
+            }
+         return;
+         }
+      }
 }
 
 // --- cUdevPatternFilter ----------------------------------------------------
