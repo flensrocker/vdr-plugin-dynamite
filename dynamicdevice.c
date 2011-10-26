@@ -1,5 +1,5 @@
 #include "dynamicdevice.h"
-#include "udev.h"
+#include "monitor.h"
 #include <glob.h>
 #include <vdr/skins.h>
 #include <vdr/transfer.h>
@@ -434,6 +434,7 @@ bool cDynamicDevice::IsAttached(const char *DevPath)
 cDynamicDevice::cDynamicDevice()
 :index(-1)
 ,devpath(NULL)
+,udevRemoveSyspath(NULL)
 ,getTSTimeoutHandlerArg(NULL)
 ,isDetachable(true)
 ,getTSTimeout(defaultGetTSTimeout)
@@ -476,6 +477,18 @@ void cDynamicDevice::ReadUdevProperties(void)
      if (timeoutHandlerArg)
         InternSetGetTSTimeoutHandlerArg(timeoutHandlerArg);
 
+     cUdevDevice *p = dev->GetParent();
+     if (p) {
+        const char *subsystem = p->GetSubsystem();
+        const char *syspath = p->GetSyspath();
+        if (subsystem && syspath && (strcmp(subsystem, "usb") == 0)) {
+           cUdevUsbRemoveFilter::AddItem(syspath, **devpath);
+           if (udevRemoveSyspath)
+              delete udevRemoveSyspath;
+           udevRemoveSyspath = new cString(syspath);
+           }
+        }
+
      delete dev;
      }
 }
@@ -517,6 +530,11 @@ void cDynamicDevice::DeleteSubDevice()
      isyslog("dynamite: deleted device for %s", (devpath ? **devpath : "(unknown)"));
      if (devpath)
         cPluginManager::CallAllServices("dynamite-event-DeviceDetached-v0.1", (void*)**devpath);
+     }
+  if (udevRemoveSyspath) {
+     cUdevUsbRemoveFilter::RemoveItem(**udevRemoveSyspath, GetDevPath());
+     delete udevRemoveSyspath;
+     udevRemoveSyspath = NULL;
      }
   if (devpath) {
      delete devpath;

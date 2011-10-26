@@ -192,3 +192,7 @@ VDR Plugin 'dynamite' Revision History
 2011-09-21: Version 0.0.8a
 
 - add SVDRP/Service commands SetIdleTimeout and SetIdleWakeup to modify the values on the fly
+
+2011-10-26: Version 0.0.8b
+
+- add udev monitor for remove events of usb hardware so devices can be detached on unplugging

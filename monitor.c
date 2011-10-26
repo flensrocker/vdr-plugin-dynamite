@@ -219,6 +219,73 @@ void cUdevDvbFilter::Process(cUdevDevice &Device)
      }
 }
 
+// --- cUdevUsbRemoveFilter---------------------------------------------------
+
+cUdevUsbRemoveFilter::cItem::cItem(const char *i, const char *d)
+{
+  item = new cString(i);
+  devpath = new cString(d);
+}
+
+cUdevUsbRemoveFilter::cItem::~cItem(void)
+{
+  delete item;
+  delete devpath;
+}
+
+cMutex cUdevUsbRemoveFilter::mutexFilter;
+cUdevUsbRemoveFilter *cUdevUsbRemoveFilter::filter = NULL;
+
+void cUdevUsbRemoveFilter::Process(cUdevDevice &Device)
+{
+  const char *action = Device.GetAction();
+  const char *syspath = Device.GetSyspath();
+  if (action && syspath && (strcmp(action, "remove") == 0)) {
+     cMutexLock lock(&mutexItems);
+     for (cItem *i = items.First(); i; i = items.Next(i)) {
+         if (strncmp(**(i->item), syspath, strlen(**(i->item))) == 0) {
+            isyslog("dynamite: usb remove monitor: syspath is %s", syspath);
+            isyslog("dynamite: usb remove monitor: force detach of %s", **(i->devpath));
+            cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-ForceDetachDevice-v0.1 %s", **(i->devpath)));
+            }
+         }
+     }
+}
+
+void cUdevUsbRemoveFilter::AddItem(const char *item, const char *devpath)
+{
+  if ((item == NULL) || (devpath == NULL))
+     return;
+  cMutexLock lock(&mutexFilter);
+  if (filter == NULL) {
+     filter = new cUdevUsbRemoveFilter();
+     if (!cUdevMonitor::AddFilter( NULL, filter)) {
+        delete filter;
+        filter = NULL;
+        return;
+        }
+     }
+  isyslog("dynamite: usb remove monitor: add syspath %s", item);
+  cMutexLock lock2(&filter->mutexItems);
+  filter->items.Add(new cItem(item, devpath));
+}
+
+void cUdevUsbRemoveFilter::RemoveItem(const char *item, const char *devpath)
+{
+  if ((item == NULL) || (devpath == NULL))
+     return;
+  cMutexLock lock(&mutexFilter);
+  if (filter == NULL)
+     return;
+  cMutexLock lock2(&filter->mutexItems);
+  for (cItem *i = filter->items.First(); i; i = filter->items.Next(i)) {
+      if ((strcmp(**(i->item), item) == 0) && (strcmp(**(i->devpath), devpath) == 0)) {
+         filter->items.Del(i);
+         return;
+         }
+      }
+}
+
 // --- cUdevPatternFilter ----------------------------------------------------
 
 cMutex   cUdevPatternFilter::filtersMutex;
