@@ -196,3 +196,7 @@ VDR Plugin 'dynamite' Revision History
 2011-10-26: Version 0.0.8b
 
 - add udev monitor for remove events of usb hardware so devices can be detached on unplugging
+
+2011-10-27: Version 0.0.8c
+
+- correct call of the idle hook

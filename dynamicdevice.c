@@ -295,9 +295,11 @@ eDynamicDeviceReturnCode cDynamicDevice::SetLockDevice(const char *DevPath, bool
 
 static void CallIdleHook(const char *IdleHook, const char *DevPath, bool Idle)
 {
-  const char *idleHookCmd = *cString::sprintf("%s --idle=%s --device=%s", IdleHook, (Idle ? "on" : "off"), DevPath);
-  isyslog("dynamite: calling idle hook %s", idleHookCmd);
-  SystemExec(idleHookCmd, false);
+  cString idleHookCmd = cString::sprintf("%s --idle=%s --device=%s", IdleHook, (Idle ? "on" : "off"), DevPath);
+  isyslog("dynamite: calling idle hook %s", *idleHookCmd);
+  int status = SystemExec(*idleHookCmd, false);
+  if (!WIFEXITED(status) || WEXITSTATUS(status))
+     esyslog("SystemExec() failed with status %d", status);
 }
 
 eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
