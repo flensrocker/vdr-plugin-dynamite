@@ -27,7 +27,6 @@ protected:
 public:
   static cUdevMonitor *Get(const char *Subsystem);
   static bool AddFilter(const char *Subsystem, cUdevFilter *Filter);
-  static bool DelFilter(const char *Subsystem, cUdevFilter *Filter);
   static void ShutdownAllMonitors(void);
 
   virtual ~cUdevMonitor(void);
