@@ -10,7 +10,7 @@
 #include "menu.h"
 #include "monitor.h"
 
-static const char *VERSION        = "0.0.8c";
+static const char *VERSION        = "0.0.8d";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -425,6 +425,16 @@ bool cPluginDynamite::Service(const char *Id, void *Data)
         cDynamicDevice::SetIdle((const char*)Data, false);
      return true;
      }
+  if (strcmp(Id, "dynamite-DisableAutoIdle-v0.1") == 0) {
+     if (Data != NULL)
+        cDynamicDevice::SetAutoIdle((const char*)Data, true);
+     return true;
+     }
+  if (strcmp(Id, "dynamite-EnableAutoIdle-v0.1") == 0) {
+     if (Data != NULL)
+        cDynamicDevice::SetAutoIdle((const char*)Data, false);
+     return true;
+     }
   if (strcmp(Id, "dynamite-SetGetTSTimeout-v0.1") == 0) {
      if (Data != NULL) {
         int replyCode;
@@ -517,6 +527,10 @@ const char **cPluginDynamite::SVDRPHelpPages(void)
     "    and can close all its handles",
     "SetNotIdle /dev/path/to/device\n"
     "    Revoke the idle state of the device",
+    "DisableAutoIdle /dev/path/to/device\n"
+    "    disables the auto-idle mode on this device if configured",
+    "EnableAutoIdle /dev/path/to/device\n"
+    "    enables the auto-idle mode on this device if configured",
     "LSTD\n"
     "    Lists all devices managed by this plugin. The first column is an id,\n"
     "    the second column is the devicepath passed with ATTD\n"
@@ -629,6 +643,28 @@ cString cPluginDynamite::SVDRPCommand(const char *Command, const char *Option, i
         {
           ReplyCode = 550;
           return cString::sprintf("can't set device %s to %s and I don't know why...", Option, (idle == 1 ? "idle" : "not idle"));
+        }
+       }
+     }
+
+  int autoidle = 0;
+  if (strcasecmp(Command, "DisableAutoIdle") == 0)
+     autoidle = 1;
+  else if (strcasecmp(Command, "EnableAutoIdle") == 0)
+     autoidle = 2;
+  if (autoidle > 0) {
+     switch (cDynamicDevice::SetAutoIdle(Option, (autoidle == 1))) {
+       case ddrcSuccess:
+         return cString::sprintf("%s auto-idle mode on device %s", (autoidle == 1 ? "disabled" : "enabled"), Option);
+       case ddrcNotFound:
+        {
+          ReplyCode = 550;
+          return cString::sprintf("device %s not found", Option);
+        }
+       default:
+        {
+          ReplyCode = 550;
+          return cString::sprintf("can't %s auto-idle mode on device %s and I don't know why...", (autoidle == 1 ? "disable" : "enable"), Option);
         }
        }
      }
