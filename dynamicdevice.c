@@ -338,6 +338,27 @@ eDynamicDeviceReturnCode cDynamicDevice::SetIdle(const char *DevPath, bool Idle)
   return ddrcSuccess;
 }
 
+eDynamicDeviceReturnCode cDynamicDevice::SetAutoIdle(const char *DevPath, bool Disable)
+{
+  if (!DevPath)
+     return ddrcNotSupported;
+
+  cMutexLock lock(&arrayMutex);
+  int freeIndex = -1;
+  int index = -1;
+  if (isnumber(DevPath))
+     index = strtol(DevPath, NULL, 10) - 1;
+  else
+     index = IndexOf(DevPath, freeIndex, -1);
+
+  if ((index < 0) || (index >= numDynamicDevices))
+     return ddrcNotFound;
+
+  isyslog("dynamite: %s auto-idle mode on device %s", (Disable ? "disable" : "enable"), DevPath);
+  dynamicdevice[index]->disableAutoIdle = Disable;
+  return ddrcSuccess;
+}
+
 void cDynamicDevice::AutoIdle(void)
 {
   if (idleTimeoutMinutes <= 0)
@@ -347,7 +368,7 @@ void cDynamicDevice::AutoIdle(void)
   bool wokeupSomeDevice = false;
   int seconds = 0;
   for (int i = 0; i < numDynamicDevices; i++) {
-      if (dynamicdevice[i]->devpath != NULL) {
+      if ((dynamicdevice[i]->devpath != NULL) && !dynamicdevice[i]->disableAutoIdle) {
          if (dynamicdevice[i]->IsIdle()) {
             seconds = now - dynamicdevice[i]->idleSince;
             if ((dynamicdevice[i]->idleSince > 0) && (seconds >= (idleWakeupHours * 3600))) {
@@ -440,7 +461,7 @@ cDynamicDevice::cDynamicDevice()
 ,getTSTimeoutHandlerArg(NULL)
 ,isDetachable(true)
 ,getTSTimeout(defaultGetTSTimeout)
-,restartSectionHandler(false)
+,disableAutoIdle(false)
 {
   index = numDynamicDevices;
   if (numDynamicDevices < MAXDEVICES) {
@@ -478,6 +499,14 @@ void cDynamicDevice::ReadUdevProperties(void)
      const char *timeoutHandlerArg = dev->GetPropertyValue("dynamite_timeout_handler_arg");
      if (timeoutHandlerArg)
         InternSetGetTSTimeoutHandlerArg(timeoutHandlerArg);
+
+     const char *disableAutoIdleArg = dev->GetPropertyValue("dynamite_disable_autoidle");
+     if (disableAutoIdleArg && ((strcmp(disableAutoIdleArg, "y") == 0)
+                             || (strcmp(disableAutoIdleArg, "yes") == 0)
+                             || (strcmp(disableAutoIdleArg, "true") == 0)
+                             || (strcmp(disableAutoIdleArg, "disable") == 0)
+                             || (strcmp(disableAutoIdleArg, "1") == 0)))
+        disableAutoIdle = true;
 
      cUdevDevice *p = dev->GetParent();
      if (p) {
@@ -544,6 +573,7 @@ void cDynamicDevice::DeleteSubDevice()
      }
   isDetachable = true;
   getTSTimeout = defaultGetTSTimeout;
+  disableAutoIdle = false;
 }
 
 bool cDynamicDevice::SetIdleDevice(bool Idle, bool TestOnly)

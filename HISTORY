@@ -200,3 +200,7 @@ VDR Plugin 'dynamite' Revision History
 2011-10-27: Version 0.0.8c
 
 - correct call of the idle hook
+
+2011-12-04: Version 0.0.8d
+
+- allow disable of auto-idle per device via Service/SVDRP/udev

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2011-09-21 17:42+0200\n"
+"POT-Creation-Date: 2011-12-04 13:57+0100\n"
 "PO-Revision-Date: 2011-07-09 23:22+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team: \n"
@@ -44,6 +44,12 @@ msgstr "Disabilita scollegamento dispositivi"
 
 msgid "enable detach of device"
 msgstr "Abilita scollegamento dispositivi"
+
+msgid "disable auto-idle mode of device"
+msgstr "disable auto-idle mode of device"
+
+msgid "enable auto-idle mode of device"
+msgstr "enable auto-idle mode of device"
 
 msgid "switch device to idle"
 msgstr "Imposta dispositivo in attesa"

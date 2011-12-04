@@ -37,6 +37,8 @@ enum eMenuAction { maList,
                    maDetach,
                    maLock,
                    maUnlock,
+                   maDisableAutoIdle,
+                   maEnableAutoIdle,
                    maSetIdle
                  };
 
@@ -69,6 +71,11 @@ public:
         isyslog("dynamite: menu action: %slock device %s", (action == maUnlock ? "un" : ""), DevPath);
         cDynamicDevice::SetLockDevice(DevPath, action == maLock);
         break;
+      case maDisableAutoIdle:
+      case maEnableAutoIdle:
+        isyslog("dynamite: menu action: %s auto-idle mode on device %s", (action == maDisableAutoIdle ? "disable" : "enable"), DevPath);
+        cDynamicDevice::SetAutoIdle(DevPath, action == maDisableAutoIdle);
+        break;
       case maSetIdle:
         isyslog("dynamite: menu action: set idle mode on device %s", DevPath);
         cDynamicDevice::SetIdle(DevPath, true);
@@ -87,6 +94,8 @@ cDynamiteMainMenu::cDynamiteMainMenu(void)
   Add(new cDynamiteMenuItem(maDetach, tr("detach device")));
   Add(new cDynamiteMenuItem(maLock, tr("disable detach of device")));
   Add(new cDynamiteMenuItem(maUnlock, tr("enable detach of device")));
+  Add(new cDynamiteMenuItem(maDisableAutoIdle, tr("disable auto-idle mode of device")));
+  Add(new cDynamiteMenuItem(maEnableAutoIdle, tr("enable auto-idle mode of device")));
   Add(new cDynamiteMenuItem(maSetIdle, tr("switch device to idle")));
 }
 

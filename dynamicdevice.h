@@ -42,6 +42,7 @@ public:
   static eDynamicDeviceReturnCode DetachDevice(const char *DevPath, bool Force);
   static eDynamicDeviceReturnCode SetLockDevice(const char *DevPath, bool Lock);
   static eDynamicDeviceReturnCode SetIdle(const char *DevPath, bool Idle);
+  static eDynamicDeviceReturnCode SetAutoIdle(const char *DevPath, bool Disable);
   static void AutoIdle(void);
   static eDynamicDeviceReturnCode SetGetTSTimeout(const char *DevPath, int Seconds);
   static void SetDefaultGetTSTimeout(int Seconds);
@@ -55,7 +56,7 @@ private:
   bool     isDetachable;
   time_t   getTSWatchdog;
   int      getTSTimeout;
-  bool     restartSectionHandler;
+  bool     disableAutoIdle;
   time_t   lastCloseDvr; // for auto-idle
   time_t   idleSince;
   void ReadUdevProperties(void);
