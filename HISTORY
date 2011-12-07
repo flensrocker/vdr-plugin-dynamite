@@ -204,3 +204,7 @@ VDR Plugin 'dynamite' Revision History
 2011-12-04: Version 0.0.8d
 
 - allow disable of auto-idle per device via Service/SVDRP/udev
+
+2011-12-08: Version 0.0.8e
+
+- fix a possible double attach of devices if they have a cardindex set with udev

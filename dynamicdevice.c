@@ -26,7 +26,7 @@ int cDynamicDevice::IndexOf(const char *DevPath, int &NextFreeIndex, int WishInd
             isyslog("dynamite: device at slot %d has cardindex %d", i + 1, dynamicdevice[i]->CardIndex());
          if ((NextFreeIndex < 0) || ((WishIndex >= 0) && (dynamicdevice[i]->CardIndex() == WishIndex))) {
             NextFreeIndex = i;
-            if (dynamicdevice[i]->CardIndex() == WishIndex)
+            if ((dynamicdevice[i]->CardIndex() == WishIndex) && (index >= 0))
                break;
             }
          }
