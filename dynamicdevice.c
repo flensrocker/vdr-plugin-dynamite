@@ -1,5 +1,6 @@
 #include "dynamicdevice.h"
 #include "monitor.h"
+#include "status.h"
 #include <glob.h>
 #include <vdr/skins.h>
 #include <vdr/transfer.h>
@@ -226,6 +227,7 @@ attach:
      cString osdMsg = cString::sprintf(tr("attached %s"), DevPath);
      Skins.QueueMessage(mtInfo, *osdMsg);
      }
+  cDynamiteStatus::SetInitialChannel();
   return ddrcSuccess;
 }
 
