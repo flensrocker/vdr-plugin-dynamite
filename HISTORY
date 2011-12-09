@@ -208,3 +208,9 @@ VDR Plugin 'dynamite' Revision History
 2011-12-08: Version 0.0.8e
 
 - fix a possible double attach of devices if they have a cardindex set with udev
+
+2011-12-10: Version 0.0.8f
+
+- try to set the initial channel on device-attach if it hasn't been set so far
+  and the user or a timer hasn't selected another channel
+  (giving up 60 seconds after startup)

@@ -9,8 +9,9 @@
 #include "dynamicdevice.h"
 #include "menu.h"
 #include "monitor.h"
+#include "status.h"
 
-static const char *VERSION        = "0.0.8e";
+static const char *VERSION        = "0.0.8f";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -110,6 +111,7 @@ cPluginDynamite::cPluginDynamite(void)
 
 cPluginDynamite::~cPluginDynamite()
 {
+  cDynamiteStatus::DeInit();
   cUdevMonitor::ShutdownAllMonitors();
   cUdev::Free();
   if (cDynamicDevice::dvbprobe)
@@ -278,6 +280,8 @@ bool cPluginDynamite::Initialize(void)
 
 bool cPluginDynamite::Start(void)
 {
+  cDynamiteStatus::Init();
+
   if (!cDynamicDevice::ProcessQueuedCommands())
      esyslog("dynamite: can't process all queued commands");
   return true;
