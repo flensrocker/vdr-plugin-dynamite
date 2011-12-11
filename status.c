@@ -2,30 +2,30 @@
 
 cDynamiteStatus *cDynamiteStatus::status = NULL;
 
-#define SETINITIALCHANNELTIMEOUT 60 // 60 seconds
+#define SETSTARTUPCHANNELTIMEOUT 60 // 60 seconds
 
-cDynamiteStatus::cDynamiteStatus(int InitialChannel)
+cDynamiteStatus::cDynamiteStatus(int StartupChannel)
 {
   init = time(NULL);
-  initialChannel = InitialChannel;
-  initialChannelSet = false;
+  startupChannel = StartupChannel;
+  startupChannelSet = false;
   switchCount = 0;
-  isyslog("dynamite: initial channel is %d", initialChannel);
+  isyslog("dynamite: startup channel is %d", startupChannel);
 }
 
 void cDynamiteStatus::ChannelSwitch(const cDevice *Device, int ChannelNumber)
 {
-  if ((ChannelNumber == 0) || initialChannelSet || (initialChannel < 0) || (switchCount > 1))
+  if ((ChannelNumber == 0) || startupChannelSet || (startupChannel < 0) || (switchCount > 1))
      return;
   if ((cDevice::PrimaryDevice() != cDevice::ActualDevice()) && (cDevice::PrimaryDevice() == Device))
      return;
-  if (ChannelNumber == initialChannel) {
-     initialChannelSet = true;
+  if (ChannelNumber == startupChannel) {
+     startupChannelSet = true;
      return;
      }
-  if ((time(NULL) - init) > SETINITIALCHANNELTIMEOUT) {
-     isyslog("dynamite: no devices within %d seconds for receiving initial channel %d, giving up", SETINITIALCHANNELTIMEOUT, initialChannel);
-     initialChannelSet = true;
+  if ((time(NULL) - init) > SETSTARTUPCHANNELTIMEOUT) {
+     isyslog("dynamite: no devices within %d seconds for receiving initial channel %d, giving up", SETSTARTUPCHANNELTIMEOUT, startupChannel);
+     startupChannelSet = true;
      return;
      }
   isyslog("dynamite: device %d switches channel to %d", Device->DeviceNumber() + 1, ChannelNumber);
@@ -38,15 +38,20 @@ void cDynamiteStatus::Init(void)
 {
   if (status)
      return;
+  int startupChannel = Setup.CurrentChannel;
   if (*Setup.InitialChannel) {
      cString cid = Setup.InitialChannel;
-     if (isnumber(cid)) { // for compatibility with old setup.conf files
-        if (cChannel *Channel = Channels.GetByNumber(atoi(cid)))
-           cid = Channel->GetChannelID().ToString();
+     if (isnumber(cid)) // for compatibility with old setup.conf files
+        startupChannel = atoi(cid);
+     else {
+        if (cChannel *Channel = Channels.GetByChannelID(tChannelID::FromString(cid))) {
+           status = new cDynamiteStatus(Channel->Number());
+           return;
+           }
         }
-     if (cChannel *Channel = Channels.GetByChannelID(tChannelID::FromString(cid)))
-        status = new cDynamiteStatus(Channel->Number());
      }
+  if (cChannel *Channel = Channels.GetByNumber(startupChannel))
+     status = new cDynamiteStatus(Channel->Number());
 }
 
 void cDynamiteStatus::DeInit(void)
@@ -57,14 +62,15 @@ void cDynamiteStatus::DeInit(void)
   status = NULL;
 }
 
-void cDynamiteStatus::SetInitialChannel(void)
+void cDynamiteStatus::SetStartupChannel(void)
 {
   if (status == NULL)
      return;
-  if (status->initialChannelSet) {
+  if (status->startupChannelSet) {
      DeInit();
      return;
      }
-  if (!Channels.SwitchTo(status->initialChannel))
+  isyslog("dynamite: new device attached, retry switching to startup channel %d", status->startupChannel);
+  if (!Channels.SwitchTo(status->startupChannel))
      status->switchCount--;
 }

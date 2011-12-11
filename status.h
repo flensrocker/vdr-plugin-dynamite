@@ -8,18 +8,18 @@ private:
   static cDynamiteStatus *status;
 
   time_t init;
-  int    initialChannel;
-  bool   initialChannelSet;
+  int    startupChannel;
+  bool   startupChannelSet;
   int    switchCount;
 
-  cDynamiteStatus(int InitialChannel);
+  cDynamiteStatus(int StartupChannel);
 
   virtual void ChannelSwitch(const cDevice *Device, int ChannelNumber);
 
 public:
   static void Init(void);
   static void DeInit(void);
-  static void SetInitialChannel(void);
+  static void SetStartupChannel(void);
   };
 
 #endif // __DYNAMITESTATUS_H

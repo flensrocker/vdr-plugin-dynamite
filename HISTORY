@@ -214,3 +214,7 @@ VDR Plugin 'dynamite' Revision History
 - try to set the initial channel on device-attach if it hasn't been set so far
   and the user or a timer hasn't selected another channel
   (giving up 60 seconds after startup)
+
+2011-12-11: Version 0.0.8g
+
+- if the initial channel is empty, the "current channel" is the "startup channel"
