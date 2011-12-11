@@ -24,14 +24,14 @@ void cDynamiteStatus::ChannelSwitch(const cDevice *Device, int ChannelNumber)
      return;
      }
   if ((time(NULL) - init) > SETSTARTUPCHANNELTIMEOUT) {
-     isyslog("dynamite: no devices within %d seconds for receiving initial channel %d, giving up", SETSTARTUPCHANNELTIMEOUT, startupChannel);
+     isyslog("dynamite: no devices within %d seconds for receiving startup channel %d, giving up", SETSTARTUPCHANNELTIMEOUT, startupChannel);
      startupChannelSet = true;
      return;
      }
   isyslog("dynamite: device %d switches channel to %d", Device->DeviceNumber() + 1, ChannelNumber);
   switchCount++;
   if (switchCount > 1)
-     isyslog("dynamite: assuming manual channel switch, so give up trying to set initial channel on device attach");
+     isyslog("dynamite: assuming manual channel switch, so give up trying to set startup channel on device attach");
 }
 
 void cDynamiteStatus::Init(void)
