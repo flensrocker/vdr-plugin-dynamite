@@ -227,7 +227,7 @@ attach:
      cString osdMsg = cString::sprintf(tr("attached %s"), DevPath);
      Skins.QueueMessage(mtInfo, *osdMsg);
      }
-  cDynamiteStatus::SetInitialChannel();
+  cDynamiteStatus::SetStartupChannel();
   return ddrcSuccess;
 }
 
