@@ -50,7 +50,7 @@ INCLUDES += -I$(VDRDIR)/include
 
 DEFINES += -D_GNU_SOURCE -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
 ifdef YAVDR_PATCHES
-DEFINE += -DYAVDRPATCHES
+DEFINES += -DYAVDR_PATCHES
 endif
 
 ### The object files (add further files here):
