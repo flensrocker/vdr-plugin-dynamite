@@ -15,6 +15,35 @@ bool cDynamicDevice::enableOsdMessages = false;
 int cDynamicDevice::numDynamicDevices = 0;
 cMutex cDynamicDevice::arrayMutex;
 cDynamicDevice *cDynamicDevice::dynamicdevice[MAXDEVICES] = { NULL };
+cList<cDynamicDeviceProbe::cDynamicDeviceProbeItem> cDynamicDevice::commandRequeue;
+
+cList<cDynamicDevice::cDelayedDeviceItems> cDynamicDevice::cDelayedDeviceItems::delayedItems;
+
+cDynamicDevice::cDelayedDeviceItems::cDelayedDeviceItems(const char *DevPath, int AttachDelay)
+ :devPath(DevPath)
+{
+ dontAttachBefore = time(NULL) + AttachDelay;
+ delayedItems.Add(this);
+}
+
+int cDynamicDevice::cDelayedDeviceItems::CanBeAttached(const char *DevPath)
+{
+  if (DevPath == NULL)
+     return false;
+  time_t now = time(NULL);
+  for (cDelayedDeviceItems *item = delayedItems.First(); item; item = delayedItems.Next(item)) {
+      if (strcmp(*item->devPath, DevPath) == 0) {
+         if (item->dontAttachBefore < now) {
+            delayedItems.Del(item);
+            isyslog("dynamite: %s can be attached now", DevPath);
+            return 1;
+            }
+         isyslog("dynamite: %s should not be attached yet", DevPath);
+         return 0;
+         }
+      }
+  return 2;
+}
 
 int cDynamicDevice::IndexOf(const char *DevPath, int &NextFreeIndex, int WishIndex)
 {
@@ -52,7 +81,11 @@ bool cDynamicDevice::ProcessQueuedCommands(void)
       switch (dev->cmd) {
          case ddpcAttach:
           {
-           AttachDevice(*dev->devpath);
+           int delayed = cDelayedDeviceItems::CanBeAttached(*dev->devpath);
+           if (delayed == 0)
+              commandRequeue.Add(new cDynamicDeviceProbe::cDynamicDeviceProbeItem(ddpcAttach, new cString(*dev->devpath)));
+           else if (delayed > 0)
+              AttachDevice(*dev->devpath, delayed);
            break;
           }
          case ddpcDetach:
@@ -78,24 +111,38 @@ bool cDynamicDevice::ProcessQueuedCommands(void)
         }
       }
   cDynamicDeviceProbe::commandQueue.Clear();
+  for (cDynamicDeviceProbe::cDynamicDeviceProbeItem *dev = commandRequeue.First(); dev; dev = commandRequeue.Next(dev))
+      cDynamicDeviceProbe::commandQueue.Add(new cDynamicDeviceProbe::cDynamicDeviceProbeItem(dev->cmd, new cString(**dev->devpath)));
+  commandRequeue.Clear();
   return true;
 }
 
-int cDynamicDevice::GetProposedCardIndex(const char *DevPath)
+int cDynamicDevice::GetUdevAttributesForAttach(const char *DevPath, int &CardIndex, int &AttachDelay)
 {
-  int cardindex = -1;
+  CardIndex = -1;
+  AttachDelay = 0;
   if (DevPath == NULL)
-     return cardindex;
+     return -1;
   cUdevDevice *dev = cUdev::GetDeviceFromDevName(DevPath);
-  if (dev != NULL) {
-     const char *val = dev->GetPropertyValue("dynamite_cardindex");
+  if (dev == NULL)
+     return -1;
+  int intVal;
+  const char *val = dev->GetPropertyValue("dynamite_cardindex");
+  if (val) {
      isyslog("dynamite: udev cardindex is %s", val);
-     int intVal = -1;
+     intVal = -1;
      if (val && (sscanf(val, "%d", &intVal) == 1) && (intVal >= 0) && (intVal <= MAXDEVICES))
-        cardindex = intVal;
-     delete dev;
+        CardIndex = intVal;
      }
-  return cardindex;
+  val = dev->GetPropertyValue("dynamite_attach_delay");
+  if (val) {
+     isyslog("dynamite: udev attach_delay is %s", val);
+     intVal = 0;
+     if (val && (sscanf(val, "%d", &intVal) == 1) && (intVal > 0))
+        AttachDelay = intVal;
+     }
+  delete dev;
+  return 0;
 }
 
 void cDynamicDevice::DetachAllDevices(bool Force)
@@ -147,13 +194,15 @@ cString cDynamicDevice::AttachDevicePattern(const char *Pattern)
   return reply;
 }
 
-eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath)
+eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int Delayed)
 {
   if (!DevPath)
      return ddrcNotSupported;
 
   cMutexLock lock(&arrayMutex);
-  int wishIndex = GetProposedCardIndex(DevPath);
+  int wishIndex = -1;
+  int attachDelay = 0;
+  GetUdevAttributesForAttach(DevPath, wishIndex, attachDelay);
   if (wishIndex >= 0)
      isyslog("dynamite: %s wants card index %d", DevPath, wishIndex);
   int freeIndex = -1;
@@ -169,6 +218,12 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath)
   if (freeIndex < 0) {
      esyslog("dynamite: no more free slots for %s", DevPath);
      return ddrcNoFreeDynDev;
+     }
+
+  if ((attachDelay > 0) && (Delayed > 1)) {
+     commandRequeue.Add(new cDynamicDeviceProbe::cDynamicDeviceProbeItem(ddpcAttach, new cString(DevPath)));
+     new cDelayedDeviceItems(DevPath, attachDelay);
+     return ddrcAttachDelayed;
      }
 
   cUdevDevice *dev = cUdev::GetDeviceFromDevName(DevPath);
