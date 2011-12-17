@@ -218,3 +218,12 @@ VDR Plugin 'dynamite' Revision History
 2011-12-11: Version 0.0.8g
 
 - if the initial channel is empty, the "current channel" is the "startup channel"
+
+2011-12-15: Version 0.0.8h
+
+- correct define for new virtual functions added by yaVDR-patches
+
+2011-12-15: Version 0.0.8i
+
+- add udev attribute "dynamite_attach_delay" for delaying the attach of specific devices
+  useful for device if the firmware upload needs some time

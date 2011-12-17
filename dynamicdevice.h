@@ -11,12 +11,29 @@ enum eDynamicDeviceReturnCode { ddrcSuccess,
                                 ddrcIsPrimaryDevice,
                                 ddrcIsReceiving,
                                 ddrcNotAllowed,
-                                ddrcNotSupported
+                                ddrcNotSupported,
+                                ddrcAttachDelayed
                              };
 
 class cDynamicDevice : public cDevice {
  friend class cPluginDynamite;
 private:
+  class cDelayedDeviceItems : public cListObject {
+  private:
+    static cList<cDelayedDeviceItems> delayedItems;
+
+    cString devPath;
+    time_t  dontAttachBefore;
+
+  public:
+    cDelayedDeviceItems(const char *DevPath, int AttachDelay);
+
+    static int CanBeAttached(const char *DevPath);
+       ///< Returns 0 if delay has not expired,
+       ///<         1 if delay has expired,
+       ///<         2 if no delay is given
+  };
+
   static cPlugin *dynamite;
   static int defaultGetTSTimeout;
   static int idleTimeoutMinutes;
@@ -26,6 +43,7 @@ private:
   static int numDynamicDevices;
   static cMutex arrayMutex;
   static cDynamicDevice *dynamicdevice[MAXDEVICES];
+  static cList<cDynamicDeviceProbe::cDynamicDeviceProbeItem> commandRequeue;
 public:
   static cDvbDeviceProbe *dvbprobe;
   static bool enableOsdMessages;
@@ -34,11 +52,11 @@ public:
          ///< Returns the total number of dynamic devices.
   static cDynamicDevice *GetDynamicDevice(int Index);
   static bool ProcessQueuedCommands(void);
-  static int GetProposedCardIndex(const char *DevPath);
+  static int GetUdevAttributesForAttach(const char *DevPath, int &CardIndex, int &AttachDelay);
   static void DetachAllDevices(bool Force);
   static cString ListAllDevices(int &ReplyCode); // for SVDRP command LSTD
   static cString AttachDevicePattern(const char *Pattern);
-  static eDynamicDeviceReturnCode AttachDevice(const char *DevPath);
+  static eDynamicDeviceReturnCode AttachDevice(const char *DevPath, int Delayed);
   static eDynamicDeviceReturnCode DetachDevice(const char *DevPath, bool Force);
   static eDynamicDeviceReturnCode SetLockDevice(const char *DevPath, bool Lock);
   static eDynamicDeviceReturnCode SetIdle(const char *DevPath, bool Idle);
