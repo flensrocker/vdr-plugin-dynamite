@@ -39,6 +39,7 @@ private:
   static int idleTimeoutMinutes;
   static int idleWakeupHours;
   static cString *idleHook;
+  static cString *attachHook;
 
   static int numDynamicDevices;
   static cMutex arrayMutex;

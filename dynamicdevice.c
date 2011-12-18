@@ -10,6 +10,7 @@ int cDynamicDevice::defaultGetTSTimeout = 0;
 int cDynamicDevice::idleTimeoutMinutes = 0;
 int cDynamicDevice::idleWakeupHours = 0;
 cString *cDynamicDevice::idleHook = NULL;
+cString *cDynamicDevice::attachHook = NULL;
 cDvbDeviceProbe *cDynamicDevice::dvbprobe = NULL;
 bool cDynamicDevice::enableOsdMessages = false;
 int cDynamicDevice::numDynamicDevices = 0;
