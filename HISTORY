@@ -227,3 +227,7 @@ VDR Plugin 'dynamite' Revision History
 
 - add udev attribute "dynamite_attach_delay" for delaying the attach of specific devices
   useful for device if the firmware upload needs some time
+
+2011-12-15: Version 0.0.8j
+
+- add attach-hook, argument is --device=/dev/path

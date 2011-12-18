@@ -10,6 +10,7 @@ int cDynamicDevice::defaultGetTSTimeout = 0;
 int cDynamicDevice::idleTimeoutMinutes = 0;
 int cDynamicDevice::idleWakeupHours = 0;
 cString *cDynamicDevice::idleHook = NULL;
+cString *cDynamicDevice::attachHook = NULL;
 cDvbDeviceProbe *cDynamicDevice::dvbprobe = NULL;
 bool cDynamicDevice::enableOsdMessages = false;
 int cDynamicDevice::numDynamicDevices = 0;
@@ -38,7 +39,7 @@ int cDynamicDevice::cDelayedDeviceItems::CanBeAttached(const char *DevPath)
             isyslog("dynamite: %s can be attached now", DevPath);
             return 1;
             }
-         isyslog("dynamite: %s should not be attached yet", DevPath);
+         dsyslog("dynamite: %s should not be attached yet", DevPath);
          return 0;
          }
       }
@@ -211,7 +212,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
   int frontend = -1;
 
   if (index >= 0) {
-     esyslog("dynamite: %s is already attached", DevPath);
+     isyslog("dynamite: %s is already attached", DevPath);
      return ddrcAlreadyAttached;
      }
 
@@ -283,6 +284,13 @@ attach:
      Skins.QueueMessage(mtInfo, *osdMsg);
      }
   cDynamiteStatus::SetStartupChannel();
+  if (attachHook != NULL) {
+     cString hookCmd = cString::sprintf("%s --device=%s", **attachHook, DevPath);
+     isyslog("dynamite: calling attach hook %s", *hookCmd);
+     int status = SystemExec(*hookCmd, true);
+     if (!WIFEXITED(status) || WEXITSTATUS(status))
+        esyslog("SystemExec() failed with status %d", status);
+     }
   return ddrcSuccess;
 }
 

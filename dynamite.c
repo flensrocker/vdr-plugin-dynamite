@@ -11,7 +11,7 @@
 #include "monitor.h"
 #include "status.h"
 
-static const char *VERSION        = "0.0.8i";
+static const char *VERSION        = "0.0.8j";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -114,12 +114,26 @@ cPluginDynamite::~cPluginDynamite()
   cDynamiteStatus::DeInit();
   cUdevMonitor::ShutdownAllMonitors();
   cUdev::Free();
-  if (cDynamicDevice::dvbprobe)
+  if (cDynamicDevice::idleHook != NULL) {
+     delete cDynamicDevice::idleHook;
+     cDynamicDevice::idleHook = NULL;
+     }
+  if (cDynamicDevice::attachHook != NULL) {
+     delete cDynamicDevice::attachHook;
+     cDynamicDevice::attachHook = NULL;
+     }
+  if (cDynamicDevice::dvbprobe) {
      delete cDynamicDevice::dvbprobe;
-  if (probe)
+     cDynamicDevice::dvbprobe = NULL;
+     }
+  if (probe) {
      delete probe;
-  if (getTSTimeoutHandler != NULL)
+     probe = NULL;
+     }
+  if (getTSTimeoutHandler != NULL) {
      delete getTSTimeoutHandler;
+     getTSTimeoutHandler = NULL;
+     }
 }
 
 const char *cPluginDynamite::CommandLineHelp(void)
@@ -132,6 +146,8 @@ const char *cPluginDynamite::CommandLineHelp(void)
          "    set program to be called on GetTS-timeout\n"
          "  --free-device-slots=n\n"
          "    leave n slots free for non-dynamic devices\n"
+         "  --attach-hook=/path/to/program\n"
+         "    set program to be called on device attach\n"
          "  --idle-hook=/path/to/program\n"
          "    set program to be called on SetIdle and reactivation\n"
          "  --idle-timeout=m\n"
@@ -149,6 +165,7 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
     {"GetTSTimeout", required_argument, 0, 't'},
     {"GetTSTimeoutHandler", required_argument, 0, 'h'},
     {"free-device-slots", required_argument, 0, 'f'},
+    {"attach-hook", required_argument, 0, 'a'},
     {"idle-hook", required_argument, 0, 'i'},
     {"idle-timeout", required_argument, 0, 'I'},
     {"idle-wakeup", required_argument, 0, 'W'},
@@ -157,7 +174,7 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
 
   while (true) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "udt:h:f:i:I:W:", options, &option_index);
+        int c = getopt_long(argc, argv, "udt:h:f:a:i:I:W:", options, &option_index);
         if (c == -1)
            break;
         switch (c) {
@@ -198,6 +215,17 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
                    freeDeviceSlots = tmp;
                 else
                    esyslog("dynamite: \"%d\" free device slots is out of range", tmp);
+                }
+             break;
+           }
+          case 'a':
+           {
+             if (cDynamicDevice::attachHook != NULL)
+                delete cDynamicDevice::attachHook;
+             cDynamicDevice::attachHook = NULL;
+             if (optarg != NULL) {
+                cDynamicDevice::attachHook = new cString(optarg);
+                isyslog("dynamite: installing attach-hook %s", **cDynamicDevice::attachHook);
                 }
              break;
            }
@@ -357,6 +385,15 @@ bool cPluginDynamite::SetupParse(const char *Name, const char *Value)
         freeDeviceSlots = tmp;
      else
         esyslog("dynamite: \"%d\" free device slots is out of range", tmp);
+     }
+  else if (strcasecmp(Name, "AttachHook") == 0) {
+     if (cDynamicDevice::attachHook != NULL)
+        delete cDynamicDevice::attachHook;
+     cDynamicDevice::attachHook = NULL;
+     if (Value != NULL) {
+        cDynamicDevice::attachHook = new cString(Value);
+        isyslog("dynamite: installing attach-hook %s", **cDynamicDevice::attachHook);
+        }
      }
   else if (strcasecmp(Name, "IdleHook") == 0) {
      if (cDynamicDevice::idleHook != NULL)
