@@ -114,12 +114,22 @@ cPluginDynamite::~cPluginDynamite()
   cDynamiteStatus::DeInit();
   cUdevMonitor::ShutdownAllMonitors();
   cUdev::Free();
-  if (cDynamicDevice::dvbprobe)
+  if (cDynamicDevice::idleHook != NULL) {
+     delete cDynamicDevice::idleHook;
+     cDynamicDevice::idleHook = NULL;
+     }
+  if (cDynamicDevice::dvbprobe) {
      delete cDynamicDevice::dvbprobe;
-  if (probe)
+     cDynamicDevice::dvbprobe = NULL;
+     }
+  if (probe) {
      delete probe;
-  if (getTSTimeoutHandler != NULL)
+     probe = NULL;
+     }
+  if (getTSTimeoutHandler != NULL) {
      delete getTSTimeoutHandler;
+     getTSTimeoutHandler = NULL;
+     }
 }
 
 const char *cPluginDynamite::CommandLineHelp(void)
