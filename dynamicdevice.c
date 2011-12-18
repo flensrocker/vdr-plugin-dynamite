@@ -284,6 +284,13 @@ attach:
      Skins.QueueMessage(mtInfo, *osdMsg);
      }
   cDynamiteStatus::SetStartupChannel();
+  if (attachHook != NULL) {
+     cString hookCmd = cString::sprintf("%s --device=%s", **attachHook, DevPath);
+     isyslog("dynamite: calling attach hook %s", *hookCmd);
+     int status = SystemExec(*hookCmd, true);
+     if (!WIFEXITED(status) || WEXITSTATUS(status))
+        esyslog("SystemExec() failed with status %d", status);
+     }
   return ddrcSuccess;
 }
 
