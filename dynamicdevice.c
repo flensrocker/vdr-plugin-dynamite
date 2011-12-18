@@ -38,7 +38,7 @@ int cDynamicDevice::cDelayedDeviceItems::CanBeAttached(const char *DevPath)
             isyslog("dynamite: %s can be attached now", DevPath);
             return 1;
             }
-         isyslog("dynamite: %s should not be attached yet", DevPath);
+         dsyslog("dynamite: %s should not be attached yet", DevPath);
          return 0;
          }
       }
@@ -211,7 +211,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
   int frontend = -1;
 
   if (index >= 0) {
-     esyslog("dynamite: %s is already attached", DevPath);
+     isyslog("dynamite: %s is already attached", DevPath);
      return ddrcAlreadyAttached;
      }
 
