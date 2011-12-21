@@ -105,8 +105,13 @@ public:
   virtual int SignalStrength(void) const;
   virtual int SignalQuality(void) const;
   virtual const cChannel *GetCurrentlyTunedTransponder(void) const;
+#if VDRVERSNUM < 10722
   virtual bool IsTunedToTransponder(const cChannel *Channel);
   virtual bool MaySwitchTransponder(void);
+#else
+  virtual bool IsTunedToTransponder(const cChannel *Channel) const;
+  virtual bool MaySwitchTransponder(const cChannel *Channel) const;
+#endif
 protected:
   virtual bool SetChannelDevice(const cChannel *Channel, bool LiveView);
 public:
@@ -164,7 +169,9 @@ protected:
   virtual bool HasInternalCam(void);
 //opt-44_rotor.dpatch 
   virtual bool SendDiseqcCmd(dvb_diseqc_master_cmd cmd);
-//opt-64_lnb-sharing.dpatch 
+#endif
+
+#ifdef LNB_SHARING_VERSION
   virtual void SetLnbNrFromSetup(void);
   virtual int LnbNr(void) const;
   virtual bool IsShareLnb(const cDevice *Device);

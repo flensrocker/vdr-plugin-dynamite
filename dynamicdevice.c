@@ -817,19 +817,33 @@ const cChannel *cDynamicDevice::GetCurrentlyTunedTransponder(void) const
   return cDevice::GetCurrentlyTunedTransponder();
 }
 
+
+#if VDRVERSNUM < 10722
 bool cDynamicDevice::IsTunedToTransponder(const cChannel *Channel)
+#else
+bool cDynamicDevice::IsTunedToTransponder(const cChannel *Channel) const
+#endif
 {
   if (!IsIdle() && subDevice)
      return subDevice->IsTunedToTransponder(Channel);
   return cDevice::IsTunedToTransponder(Channel);
 }
 
+#if VDRVERSNUM < 10722
 bool cDynamicDevice::MaySwitchTransponder(void)
 {
   if (subDevice)
      return subDevice->MaySwitchTransponder();
   return cDevice::MaySwitchTransponder();
 }
+#else
+bool cDynamicDevice::MaySwitchTransponder(const cChannel *Channel) const
+{
+  if (subDevice)
+     return subDevice->MaySwitchTransponder(Channel);
+  return cDevice::MaySwitchTransponder(Channel);
+}
+#endif
 
 bool cDynamicDevice::SetChannelDevice(const cChannel *Channel, bool LiveView)
 {
@@ -1119,8 +1133,9 @@ bool cDynamicDevice::SendDiseqcCmd(dvb_diseqc_master_cmd cmd)
      return subDevice->SendDiseqcCmd(cmd);
   return cDevice::SendDiseqcCmd(cmd);
 }
+#endif
 
-//opt-64_lnb-sharing.dpatch 
+#ifdef LNB_SHARING_VERSION
 void cDynamicDevice::SetLnbNrFromSetup(void)
 {
   if (subDevice)

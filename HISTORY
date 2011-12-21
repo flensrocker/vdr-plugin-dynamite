@@ -236,3 +236,7 @@ VDR Plugin 'dynamite' Revision History
 
 - call attach-hook on detach, too, argument is --action=detach --device=/dev/path
   arguments for call on attach has changed to --action=attach --device=/dev/path
+
+2011-12-21: Version 0.0.9
+
+- adjust to vdr 1.7.22
