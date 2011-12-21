@@ -235,7 +235,7 @@ Commandline Arguments
         leave n slots free for non-dynamic devices of
         incompatible plugins
 -a, --attach-hook=/path/to/program
-        set program to be called on device attach
+        set program to be called on device attach/detach
 -i, --idle-hook=/path/to/program
         set program to be called on SetIdle and reactivation
 -I, --idle-timeout=m
@@ -245,11 +245,11 @@ Commandline Arguments
 
 Attach hook
 -----------
-If you want 'special action' taken after a device is attached to vdr
-you can specify a program either with the commandline parameter
+If you want 'special action' taken after a device is attached or detached
+to vdr you can specify a program either with the commandline parameter
 "--attach-hook=/path/to/program" or with an entry in the setup.conf
 dynamite.AttachHook = /path/to/program
-It will be called with the parameter "--device=/dev/path".
+It will be called with the parameter "--action=[attach|detach] --device=/dev/path".
 
 Idle mode
 ---------

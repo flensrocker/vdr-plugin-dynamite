@@ -285,8 +285,8 @@ attach:
      }
   cDynamiteStatus::SetStartupChannel();
   if (attachHook != NULL) {
-     cString hookCmd = cString::sprintf("%s --device=%s", **attachHook, DevPath);
-     isyslog("dynamite: calling attach hook %s", *hookCmd);
+     cString hookCmd = cString::sprintf("%s --action=attach --device=%s", **attachHook, DevPath);
+     isyslog("dynamite: calling hook %s", *hookCmd);
      int status = SystemExec(*hookCmd, true);
      if (!WIFEXITED(status) || WEXITSTATUS(status))
         esyslog("SystemExec() failed with status %d", status);
@@ -312,28 +312,36 @@ eDynamicDeviceReturnCode cDynamicDevice::DetachDevice(const char *DevPath, bool 
      return ddrcNotFound;
      }
 
+  cString realDevPath(dynamicdevice[index]->GetDevPath());
   if (!Force) {
      if (!dynamicdevice[index]->isDetachable) {
-        esyslog("dynamite: detaching of device %s is not allowed", DevPath);
+        esyslog("dynamite: detaching of device %s is not allowed", *realDevPath);
         return ddrcNotAllowed;
         }
 
      if (dynamicdevice[index] == PrimaryDevice()) {
-        esyslog("dynamite: detaching of primary device %s is not supported", DevPath);
+        esyslog("dynamite: detaching of primary device %s is not supported", *realDevPath);
         return ddrcIsPrimaryDevice;
         }
 
      if (dynamicdevice[index]->Receiving(false)) {
-        esyslog("dynamite: can't detach device %s, it's receiving something important", DevPath);
+        esyslog("dynamite: can't detach device %s, it's receiving something important", *realDevPath);
         return ddrcIsReceiving;
         }
      }
 
   dynamicdevice[index]->DeleteSubDevice();
-  isyslog("dynamite: detached device %s%s", DevPath, (Force ? " (forced)" : ""));
+  isyslog("dynamite: detached device %s%s", *realDevPath, (Force ? " (forced)" : ""));
   if (enableOsdMessages) {
-     cString osdMsg = cString::sprintf(tr("detached %s"), DevPath);
+     cString osdMsg = cString::sprintf(tr("detached %s"), *realDevPath);
      Skins.QueueMessage(mtInfo, *osdMsg);
+     }
+  if (attachHook != NULL) {
+     cString hookCmd = cString::sprintf("%s --action=detach --device=%s", **attachHook, *realDevPath);
+     isyslog("dynamite: calling hook %s", *hookCmd);
+     int status = SystemExec(*hookCmd, true);
+     if (!WIFEXITED(status) || WEXITSTATUS(status))
+        esyslog("SystemExec() failed with status %d", status);
      }
   return ddrcSuccess;
 }
