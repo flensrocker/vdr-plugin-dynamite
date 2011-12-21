@@ -1117,15 +1117,16 @@ bool cDynamicDevice::GetTSPacket(uchar *&Data)
   return cDevice::GetTSPacket(Data);
 }
 
-#ifdef YAVDR_PATCHES
-//opt-21_internal-cam-devices.dpatch
+#ifdef INTERNAL_CAM_DEVICES_PATCH
 bool cDynamicDevice::HasInternalCam(void)
 {
   if (subDevice)
      return subDevice->HasInternalCam();
   return cDevice::HasInternalCam();
 }
+#endif
 
+#ifdef YAVDR_PATCHES
 //opt-44_rotor.dpatch 
 bool cDynamicDevice::SendDiseqcCmd(dvb_diseqc_master_cmd cmd)
 {

@@ -164,10 +164,12 @@ protected:
   virtual void CloseDvr(void);
   virtual bool GetTSPacket(uchar *&Data);
   
-#ifdef YAVDR_PATCHES
-//opt-21_internal-cam-devices.dpatch
+#ifdef INTERNAL_CAM_DEVICES_PATCH
   virtual bool HasInternalCam(void);
-//opt-44_rotor.dpatch 
+#endif
+
+#ifdef YAVDR_PATCHES
+//opt-44_rotor
   virtual bool SendDiseqcCmd(dvb_diseqc_master_cmd cmd);
 #endif
 
