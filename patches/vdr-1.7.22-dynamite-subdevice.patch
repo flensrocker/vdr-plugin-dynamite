@@ -1,3 +1,16 @@
+diff --git a/ci.c b/ci.c
+index 59d62ef..6c5face 100644
+--- a/ci.c
++++ b/ci.c
+@@ -1571,6 +1571,8 @@ cCamSlot::cCamSlot(cCiAdapter *CiAdapter)
+ 
+ cCamSlot::~cCamSlot()
+ {
++  if (ciAdapter && ciAdapter->assignedDevice)
++     ciAdapter->assignedDevice->SetCamSlot(NULL);
+   CamSlots.Del(this, false);
+   DeleteAllConnections();
+ }
 diff --git a/ci.h b/ci.h
 index 71bbdf9..70303d1 100644
 --- a/ci.h
