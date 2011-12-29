@@ -12,14 +12,14 @@ index 59d62ef..6c5face 100644
    DeleteAllConnections();
  }
 diff --git a/ci.h b/ci.h
-index 71bbdf9..cc23de6 100644
+index 71bbdf9..ff45fb1 100644
 --- a/ci.h
 +++ b/ci.h
 @@ -72,6 +72,7 @@ public:
    };
  
  class cDevice;
-+class cTSBuffer;
++class cTSBufferBase;
  class cCamSlot;
  
  enum eModuleStatus { msNone, msReset, msPresent, msReady };
@@ -27,7 +27,7 @@ index 71bbdf9..cc23de6 100644
         ///< The derived class must call Cancel(3) in its destructor.
    virtual bool Ready(void);
         ///< Returns 'true' if all present CAMs in this adapter are ready.
-+  virtual cTSBuffer *GetTSBuffer(int FdDvr) { return NULL; }
++  virtual cTSBufferBase *GetTSBuffer(int FdDvr) { return NULL; }
 +       ///< Derived classes can return a special TS buffer with features
 +       ///< like rerouting the stream through an external ci.
 +       ///< The caller must delete the buffer.
@@ -326,7 +326,7 @@ index 0bab66c..60382dd 100644
 +  DynamicDeviceProbes.Del(this, false);
 +}
 diff --git a/device.h b/device.h
-index e2ff812..ab0add6 100644
+index e2ff812..e0e5461 100644
 --- a/device.h
 +++ b/device.h
 @@ -164,7 +164,6 @@ private:
@@ -406,15 +406,32 @@ index e2ff812..ab0add6 100644
    };
  
  /// Derived cDevice classes that can receive channels will have to provide
-@@ -762,8 +784,51 @@ private:
+@@ -753,7 +775,14 @@ public:
+ /// sure the returned data points to a TS packet and automatically
+ /// re-synchronizes after broken packets.
+ 
+-class cTSBuffer : public cThread {
++class cTSBufferBase {
++public:
++  cTSBufferBase() {}
++  virtual ~cTSBufferBase() {}
++  virtual uchar *Get(void) = 0;
++  };
++
++class cTSBuffer : public cTSBufferBase, public cThread {
+ private:
+   int f;
+   int cardIndex;
+@@ -762,8 +791,51 @@ private:
    virtual void Action(void);
  public:
    cTSBuffer(int File, int Size, int CardIndex);
 -  ~cTSBuffer();
+-  uchar *Get(void);
 +  virtual ~cTSBuffer();
-   uchar *Get(void);
-   };
- 
++  virtual uchar *Get(void);
++  };
++
 +/// A plugin that want to create devices handled by the dynamite-plugin needs to create
 +/// a cDynamicDeviceProbe derived object on the heap in order to have its Probe()
 +/// function called, where it can actually create the appropriate device.
@@ -454,13 +471,13 @@ index e2ff812..ab0add6 100644
 +     ///< object derived from cDevice if applicable.
 +     ///< Returns the device that has been created or NULL if not.
 +     ///< The dynamite-plugin will delete the device if it is detached.
-+  };
-+
+   };
+ 
 +extern cList<cDynamicDeviceProbe> DynamicDeviceProbes;
 +  
  #endif //__DEVICE_H
 diff --git a/dvbci.c b/dvbci.c
-index 5289bbd..20a04fa 100644
+index 5289bbd..af5a199 100644
 --- a/dvbci.c
 +++ b/dvbci.c
 @@ -10,41 +10,70 @@
@@ -509,7 +526,7 @@ index 5289bbd..20a04fa 100644
 +     CloseCa();
 +}
 +
-+cTSBuffer *cDvbCiAdapter::GetTSBuffer(int FdDvr)
++cTSBufferBase *cDvbCiAdapter::GetTSBuffer(int FdDvr)
 +{
 +  if (device)
 +     return new cTSBuffer(FdDvr, MEGABYTE(2), device->CardIndex() + 1);
@@ -647,7 +664,7 @@ index 5289bbd..20a04fa 100644
 +  DvbCiAdapterProbes.Del(this, false);
  }
 diff --git a/dvbci.h b/dvbci.h
-index adbe40d..c7354a5 100644
+index adbe40d..fe62d5e 100644
 --- a/dvbci.h
 +++ b/dvbci.h
 @@ -16,16 +16,48 @@ class cDvbCiAdapter : public cCiAdapter {
@@ -671,7 +688,7 @@ index adbe40d..c7354a5 100644
  public:
    virtual ~cDvbCiAdapter();
 -  static cDvbCiAdapter *CreateCiAdapter(cDevice *Device, int Fd);
-+  virtual cTSBuffer *GetTSBuffer(int FdDvr);
++  virtual cTSBufferBase *GetTSBuffer(int FdDvr);
 +  virtual bool SetIdle(bool Idle, bool TestOnly);
 +  virtual bool IsIdle(void) const { return idle; }
 +  static int GetNumCamSlots(cDevice *Device, int Fd, cCiAdapter *CiAdapter);
@@ -959,7 +976,7 @@ index 163fce3..4258d4a 100644
  }
  
 diff --git a/dvbdevice.h b/dvbdevice.h
-index 2072ab2..d203808 100644
+index 2072ab2..8ebd6dc 100644
 --- a/dvbdevice.h
 +++ b/dvbdevice.h
 @@ -102,7 +102,7 @@ class cDvbTuner;
@@ -990,3 +1007,12 @@ index 2072ab2..d203808 100644
    static bool BondDevices(const char *Bondings);
         ///< Bonds the devices as defined in the given Bondings string.
         ///< A bonding is a sequence of device numbers (starting at 1),
+@@ -213,7 +215,7 @@ public:
+ // Receiver facilities
+ 
+ private:
+-  cTSBuffer *tsBuffer;
++  cTSBufferBase *tsBuffer;
+ protected:
+   virtual bool OpenDvr(void);
+   virtual void CloseDvr(void);
