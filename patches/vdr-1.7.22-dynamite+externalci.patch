@@ -12,7 +12,7 @@ index 59d62ef..6c5face 100644
    DeleteAllConnections();
  }
 diff --git a/ci.h b/ci.h
-index 71bbdf9..ff45fb1 100644
+index 71bbdf9..97ba555 100644
 --- a/ci.h
 +++ b/ci.h
 @@ -72,6 +72,7 @@ public:
@@ -23,10 +23,11 @@ index 71bbdf9..ff45fb1 100644
  class cCamSlot;
  
  enum eModuleStatus { msNone, msReset, msPresent, msReady };
-@@ -115,6 +116,12 @@ public:
+@@ -115,6 +116,13 @@ public:
         ///< The derived class must call Cancel(3) in its destructor.
    virtual bool Ready(void);
         ///< Returns 'true' if all present CAMs in this adapter are ready.
++#define EXTERNALCI_PATCH
 +  virtual cTSBufferBase *GetTSBuffer(int FdDvr) { return NULL; }
 +       ///< Derived classes can return a special TS buffer with features
 +       ///< like rerouting the stream through an external ci.
