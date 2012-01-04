@@ -322,6 +322,7 @@ dynamite_instanceid
 
 dynamite_cardindex
     n: if possible attach at slot with given cardindex
+       if no cardindex is given, the adapter number will be used (see "Known issues")
 
 dynamite_disable_autoidle
     "yes", "y", "disable", "true", "1": disable the auto-idle feature on this device, any other
@@ -341,6 +342,9 @@ detached. That would imply that vdr searches for a new primary device
 or should be forced to transfer mode or something else. Since I don't
 know anything about this you have to wait for this feature or teach
 me how to do this...
+
+The "no cardindex given" default mechanism doesn't count frontends with
+numbers > 0. Make sure you have one frontend per adapter.
 
 TODO
 ----

@@ -240,3 +240,7 @@ VDR Plugin 'dynamite' Revision History
 2011-12-21: Version 0.0.9
 
 - adjust to vdr 1.7.22
+
+2011-12-21: Version 0.0.9a
+
+- reset CAMs if device will not get ready on attach
