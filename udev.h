@@ -24,6 +24,7 @@ private:
 public:
   cUdevDevice(udev_device *Device, bool DoUnref = true);
   virtual ~cUdevDevice(void);
+  virtual int Compare(const cListObject &ListObject) const;
 
   const char  *GetAction(void) const;
   cUdevListEntry *GetDevlinksList(void) const;

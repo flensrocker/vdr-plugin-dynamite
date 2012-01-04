@@ -50,6 +50,15 @@ cUdevDevice::~cUdevDevice(void)
      udev_device_unref(device);
 }
 
+int cUdevDevice::Compare(const cListObject &ListObject) const
+{
+  const char *n1 = GetDevnode();
+  const char *n2 = ((cUdevDevice*)&ListObject)->GetDevnode();
+  if ((n1 != NULL) && (n2 != NULL))
+     return strcmp(n1, n2);
+  return 0;
+}
+
 const char  *cUdevDevice::GetAction(void) const
 {
   if (device == NULL)

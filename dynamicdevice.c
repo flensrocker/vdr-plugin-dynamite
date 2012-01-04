@@ -181,12 +181,16 @@ cString cDynamicDevice::AttachDevicePattern(const char *Pattern)
 {
   if (!Pattern)
      return "invalid pattern";
+  cStringList paths;
   cString reply;
   glob_t result;
   if (glob(Pattern, GLOB_MARK, 0, &result) == 0) {
-     for (uint i = 0; i < result.gl_pathc; i++) {
-         cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, result.gl_pathv[i]);
-         reply = cString::sprintf("%squeued %s for attaching\n", (i == 0) ? "" : *reply, result.gl_pathv[i]);
+     for (uint g = 0; g < result.gl_pathc; g++)
+         paths.Append(strdup(result.gl_pathv[g]));
+     paths.Sort(false);
+     for (int i = 0; i < paths.Size(); i++) {
+         cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcAttach, paths[i]);
+         reply = cString::sprintf("%squeued %s for attaching\n", (i == 0) ? "" : *reply, paths[i]);
          }
      }
   globfree(&result);

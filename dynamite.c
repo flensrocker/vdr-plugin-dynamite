@@ -290,6 +290,7 @@ bool cPluginDynamite::Initialize(void)
   // look for all dvb devices
   cList<cUdevDevice> *devices = cUdev::EnumDevices("dvb", "DVB_DEVICE_TYPE", "frontend");
   if (devices != NULL) {
+     devices->Sort();
      int dummy = 0;
      for (cUdevDevice *d = devices->First(); d; d = devices->Next(d)) {
          const char *devpath = d->GetDevnode();
