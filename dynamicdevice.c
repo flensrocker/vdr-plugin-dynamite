@@ -5,6 +5,8 @@
 #include <vdr/skins.h>
 #include <vdr/transfer.h>
 
+#define SUBDEVICEREADYTIMEOUT    30 // seconds to wait until subdevice is ready
+
 cPlugin *cDynamicDevice::dynamite = NULL;
 int cDynamicDevice::defaultGetTSTimeout = 0;
 int cDynamicDevice::idleTimeoutMinutes = 0;
@@ -281,9 +283,27 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
   return ddrcNotSupported;
 
 attach:
-  dynamicdevice[freeIndex]->lastCloseDvr = time(NULL);
-  while (!dynamicdevice[freeIndex]->Ready())
-        cCondWait::SleepMs(2);
+  int retry = 3;
+  do {
+     dynamicdevice[freeIndex]->lastCloseDvr = time(NULL);
+     for (time_t t0 = time(NULL); time(NULL) - t0 < SUBDEVICEREADYTIMEOUT; ) {
+         if (dynamicdevice[freeIndex]->Ready()) {
+            retry = -1;
+            break;
+            }
+         cCondWait::SleepMs(100);
+         }
+     if (!dynamicdevice[freeIndex]->Ready() && dynamicdevice[freeIndex]->HasCi() && (retry > 0)) {
+        retry--;
+        isyslog("dynamite: device %s not ready after %d seconds - resetting CAMs (retry == %d)", DevPath, SUBDEVICEREADYTIMEOUT, retry);
+        for (cCamSlot* cs = CamSlots.First(); cs; cs = CamSlots.Next(cs)) {
+            if ((cs->Device() == dynamicdevice[freeIndex]) || (cs->Device() == NULL))
+               cs->Reset();
+            }
+        }
+     else
+        break;
+     } while (retry >= 0);
   dynamicdevice[freeIndex]->devpath = new cString(DevPath);
   isyslog("dynamite: attached device %s to dynamic device slot %d", DevPath, freeIndex + 1);
   dynamicdevice[freeIndex]->ReadUdevProperties();
@@ -300,6 +320,7 @@ attach:
      if (!WIFEXITED(status) || WEXITSTATUS(status))
         esyslog("SystemExec() failed with status %d", status);
      }
+  dynamicdevice[freeIndex]->subDeviceIsReady = true;
   return ddrcSuccess;
 }
 
@@ -538,6 +559,7 @@ bool cDynamicDevice::IsAttached(const char *DevPath)
 
 cDynamicDevice::cDynamicDevice()
 :index(-1)
+,subDeviceIsReady(false)
 ,devpath(NULL)
 ,udevRemoveSyspath(NULL)
 ,getTSTimeoutHandlerArg(NULL)
@@ -633,6 +655,7 @@ void cDynamicDevice::InternSetLock(bool Lock)
 
 void cDynamicDevice::DeleteSubDevice()
 {
+  subDeviceIsReady = false;
   if (subDevice) {
      Cancel(3);
      if (cTransferControl::ReceiverDevice() == this)
@@ -1098,7 +1121,7 @@ void cDynamicDevice::CloseDvr(void)
 
 bool cDynamicDevice::GetTSPacket(uchar *&Data)
 {
-  if (subDevice) {
+  if (subDeviceIsReady && subDevice) {
      bool r = subDevice->GetTSPacket(Data);
      if (getTSTimeout > 0) {
         if (Data == NULL) {

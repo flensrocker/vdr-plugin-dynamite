@@ -69,6 +69,7 @@ public:
   static bool IsAttached(const char *DevPath);
 private:
   int index;
+  bool subDeviceIsReady;
   cString *devpath;
   cString *udevRemoveSyspath;
   cString *getTSTimeoutHandlerArg;
