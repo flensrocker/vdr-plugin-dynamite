@@ -53,8 +53,6 @@ int cDynamicDevice::IndexOf(const char *DevPath, int &NextFreeIndex, int WishInd
   int index = -1;
   for (int i = 0; (i < numDynamicDevices) && ((index < 0) || (NextFreeIndex < 0) || (WishIndex >= 0)); i++) {
       if (dynamicdevice[i]->devpath == NULL) {
-         if (WishIndex >= 0)
-            isyslog("dynamite: device at slot %d has cardindex %d", i + 1, dynamicdevice[i]->CardIndex());
          if ((NextFreeIndex < 0) || ((WishIndex >= 0) && (dynamicdevice[i]->CardIndex() == WishIndex))) {
             NextFreeIndex = i;
             if ((dynamicdevice[i]->CardIndex() == WishIndex) && (index >= 0))
@@ -201,15 +199,20 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
      return ddrcNotSupported;
 
   cMutexLock lock(&arrayMutex);
+  int freeIndex = -1;
+  int index = -1;
+  int adapter = -1;
+  int frontend = -1;
   int wishIndex = -1;
   int attachDelay = 0;
   GetUdevAttributesForAttach(DevPath, wishIndex, attachDelay);
   if (wishIndex >= 0)
      isyslog("dynamite: %s wants card index %d", DevPath, wishIndex);
-  int freeIndex = -1;
-  int index = IndexOf(DevPath, freeIndex, wishIndex);
-  int adapter = -1;
-  int frontend = -1;
+  else if (sscanf(DevPath, "/dev/dvb/adapter%d/frontend%d", &adapter, &frontend) == 2) {
+     wishIndex = adapter;
+     isyslog("dynamite: %s is a dvb adapter trying to set card index to %d", DevPath, wishIndex);
+     }
+  index = IndexOf(DevPath, freeIndex, wishIndex);
 
   if (index >= 0) {
      isyslog("dynamite: %s is already attached", DevPath);
@@ -257,7 +260,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
       }
 
   // if it's a dvbdevice try the DvbDeviceProbes as a fallback for unpatched plugins
-  if (sscanf(DevPath, "/dev/dvb/adapter%d/frontend%d", &adapter, &frontend) == 2) {
+  if ((adapter >= 0) || (sscanf(DevPath, "/dev/dvb/adapter%d/frontend%d", &adapter, &frontend) == 2)) {
      for (cDvbDeviceProbe *dp = DvbDeviceProbes.First(); dp; dp = DvbDeviceProbes.Next(dp)) {
          if (dp != dvbprobe) {
             if (dp->Probe(adapter, frontend))
