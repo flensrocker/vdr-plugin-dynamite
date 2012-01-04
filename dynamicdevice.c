@@ -201,6 +201,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
   cMutexLock lock(&arrayMutex);
   int freeIndex = -1;
   int index = -1;
+  bool isDvbDevice = false;
   int adapter = -1;
   int frontend = -1;
   int wishIndex = -1;
@@ -209,6 +210,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
   if (wishIndex >= 0)
      isyslog("dynamite: %s wants card index %d", DevPath, wishIndex);
   else if (sscanf(DevPath, "/dev/dvb/adapter%d/frontend%d", &adapter, &frontend) == 2) {
+     isDvbDevice = false;
      wishIndex = adapter;
      isyslog("dynamite: %s is a dvb adapter trying to set card index to %d", DevPath, wishIndex);
      }
@@ -260,7 +262,7 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
       }
 
   // if it's a dvbdevice try the DvbDeviceProbes as a fallback for unpatched plugins
-  if ((adapter >= 0) || (sscanf(DevPath, "/dev/dvb/adapter%d/frontend%d", &adapter, &frontend) == 2)) {
+  if (isDvbDevice || (sscanf(DevPath, "/dev/dvb/adapter%d/frontend%d", &adapter, &frontend) == 2)) {
      for (cDvbDeviceProbe *dp = DvbDeviceProbes.First(); dp; dp = DvbDeviceProbes.Next(dp)) {
          if (dp != dvbprobe) {
             if (dp->Probe(adapter, frontend))
