@@ -562,6 +562,7 @@ cDynamicDevice::cDynamicDevice()
 ,subDeviceIsReady(false)
 ,devpath(NULL)
 ,udevRemoveSyspath(NULL)
+,udevProvidesSources(NULL)
 ,getTSTimeoutHandlerArg(NULL)
 ,isDetachable(true)
 ,getTSTimeout(defaultGetTSTimeout)
@@ -611,6 +612,13 @@ void cDynamicDevice::ReadUdevProperties(void)
                              || (strcmp(disableAutoIdleArg, "disable") == 0)
                              || (strcmp(disableAutoIdleArg, "1") == 0)))
         disableAutoIdle = true;
+
+     const char *providesSources = dev->GetPropertyValue("dynamite_sources");
+     if (providesSources) {
+        if (udevProvidesSources)
+           delete udevProvidesSources;
+        udevProvidesSources = new cString(cString::sprintf(",%s,", providesSources));
+        }
 
      cUdevDevice *p = dev->GetParent();
      if (p) {
@@ -671,6 +679,10 @@ void cDynamicDevice::DeleteSubDevice()
      cUdevUsbRemoveFilter::RemoveItem(**udevRemoveSyspath, GetDevPath());
      delete udevRemoveSyspath;
      udevRemoveSyspath = NULL;
+     }
+  if (udevProvidesSources) {
+     delete udevProvidesSources;
+     udevProvidesSources = NULL;
      }
   if (devpath) {
      delete devpath;
@@ -795,6 +807,14 @@ void cDynamicDevice::CloseFilter(int Handle)
 
 bool cDynamicDevice::ProvidesSource(int Source) const
 {
+  if (udevProvidesSources) {
+     cString source = cSource::ToString(Source);
+     cString search = cString::sprintf(",%s,", *source);
+     if (strstr(**udevProvidesSources, *search) == NULL) {
+        isyslog("dynamite: device %s shall not provide source %s", GetDevPath(), *source);
+        return false;
+        }
+     }
   if (subDevice)
      return subDevice->ProvidesSource(Source);
   return cDevice::ProvidesSource(Source);

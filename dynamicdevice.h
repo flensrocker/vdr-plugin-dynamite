@@ -72,6 +72,7 @@ private:
   bool subDeviceIsReady;
   cString *devpath;
   cString *udevRemoveSyspath;
+  cString *udevProvidesSources;
   cString *getTSTimeoutHandlerArg;
   bool     isDetachable;
   time_t   getTSWatchdog;

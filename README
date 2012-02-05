@@ -298,6 +298,7 @@ ACTION=="add", SUBSYSTEM=="dvb", ENV{DVB_DEVICE_TYPE}=="frontend" \
   , ENV{dynamite_attach_delay}="10" \
   , ENV{dynamite_instanceid}="0" \
   , ENV{dynamite_cardindex}="5" \
+  , ENV{dynamite_sources}="C,T" \
   , ENV{dynamite_timeout}="10" \
   , ENV{dynamite_timeout_handler_arg}="%k" \
   , ENV{dynamite_disable_autoidle}="no"
@@ -328,6 +329,15 @@ dynamite_disable_autoidle
     "yes", "y", "disable", "true", "1": disable the auto-idle feature on this device, any other
                                         string or missing of this property will activate the
                                         auto-idle feature if configured
+
+dynamite_sources
+    comma separated list of strings from sources.conf
+    dynamite will deny all channels from other sources for the subdevice.
+    If this variable is missing the subdevice is asked as usual.
+    This is useful for hybrid devices which supports multiple delivery systems
+    but only one is connected. Or if you have to dishes to different satellites
+    connected to two cards.
+    It will NOT switch the delivery system on dvb-cards, this is up to the device itself!
 
 dynamite_timeout
     n: set GetTS timeout in seconds on this device
