@@ -84,6 +84,7 @@ private:
   void InternSetGetTSTimeout(int Seconds);
   void InternSetGetTSTimeoutHandlerArg(const char *Arg);
   void InternSetLock(bool Lock);
+  bool InternProvidesSource(int Source) const;
 public:
   cDynamicDevice();
   const char *GetDevPath(void) const;

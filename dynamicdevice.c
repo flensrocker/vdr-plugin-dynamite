@@ -661,6 +661,19 @@ void cDynamicDevice::InternSetLock(bool Lock)
   isyslog("dynamite: %slocked device %s", Lock ? "" : "un", GetDevPath());
 }
 
+bool cDynamicDevice::InternProvidesSource(int Source) const
+{
+  if (udevProvidesSources) {
+     cString source = cSource::ToString(Source);
+     cString search = cString::sprintf(",%s,", *source);
+     if (strstr(**udevProvidesSources, *search) == NULL) {
+        isyslog("dynamite: device %s shall not provide source %s", GetDevPath(), *source);
+        return false;
+        }
+     }
+  return true;
+}
+
 void cDynamicDevice::DeleteSubDevice()
 {
   subDeviceIsReady = false;
@@ -807,14 +820,8 @@ void cDynamicDevice::CloseFilter(int Handle)
 
 bool cDynamicDevice::ProvidesSource(int Source) const
 {
-  if (udevProvidesSources) {
-     cString source = cSource::ToString(Source);
-     cString search = cString::sprintf(",%s,", *source);
-     if (strstr(**udevProvidesSources, *search) == NULL) {
-        isyslog("dynamite: device %s shall not provide source %s", GetDevPath(), *source);
-        return false;
-        }
-     }
+  if (!InternProvidesSource(Source))
+     return false;
   if (subDevice)
      return subDevice->ProvidesSource(Source);
   return cDevice::ProvidesSource(Source);
@@ -822,6 +829,8 @@ bool cDynamicDevice::ProvidesSource(int Source) const
 
 bool cDynamicDevice::ProvidesTransponder(const cChannel *Channel) const
 {
+  if (!InternProvidesSource(Channel->Source()))
+     return false;
   if (subDevice)
      return subDevice->ProvidesTransponder(Channel);
   return cDevice::ProvidesTransponder(Channel);
@@ -829,6 +838,8 @@ bool cDynamicDevice::ProvidesTransponder(const cChannel *Channel) const
 
 bool cDynamicDevice::ProvidesTransponderExclusively(const cChannel *Channel) const
 {
+  if (!InternProvidesSource(Channel->Source()))
+     return false;
   if (subDevice)
      return subDevice->ProvidesTransponderExclusively(Channel);
   return cDevice::ProvidesTransponderExclusively(Channel);
@@ -836,6 +847,8 @@ bool cDynamicDevice::ProvidesTransponderExclusively(const cChannel *Channel) con
 
 bool cDynamicDevice::ProvidesChannel(const cChannel *Channel, int Priority, bool *NeedsDetachReceivers) const
 {
+  if (!InternProvidesSource(Channel->Source()))
+     return false;
   if (subDevice)
      return subDevice->ProvidesChannel(Channel, Priority, NeedsDetachReceivers);
   return cDevice::ProvidesChannel(Channel, Priority, NeedsDetachReceivers);
