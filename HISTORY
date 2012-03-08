@@ -248,3 +248,7 @@ VDR Plugin 'dynamite' Revision History
 2012-02-05: Version 0.0.9b
 
 - add udev attribute "dynamite_sources" which will limit the reception of the device to the given sources
+
+2012-03-08: Version 0.0.9c
+
+- on "force detach" queue command, don't delete directly on the call

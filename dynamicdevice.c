@@ -151,10 +151,12 @@ void cDynamicDevice::DetachAllDevices(bool Force)
   cMutexLock lock(&arrayMutex);
   isyslog("dynamite: %sdetaching all devices", (Force ? "force " : ""));
   for (int i = 0; i < numDynamicDevices; i++) {
-      if (Force)
-         dynamicdevice[i]->DeleteSubDevice();
-      else if (dynamicdevice[i]->devpath)
-         cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, (**dynamicdevice[i]->devpath));
+      if (dynamicdevice[i]->devpath) {
+         if (Force)
+            cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcService, *cString::sprintf("dynamite-ForceDetachDevice-v0.1 %s", **dynamicdevice[i]->devpath));
+         else
+            cDynamicDeviceProbe::QueueDynamicDeviceCommand(ddpcDetach, (**dynamicdevice[i]->devpath));
+         }
       }
 }
 
