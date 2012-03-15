@@ -200,7 +200,7 @@ cList<cUdevDevice> *cUdev::EnumDevices(const char *Subsystem, const char *Proper
         }
      l = udev_enumerate_get_list_entry(e);
      if (l == NULL) {
-        esyslog("dynamite: can't get list of devices");
+        isyslog("dynamite: no devices found for %s/%s=%s", Subsystem, Property, Value);
         goto unref;
         }
      listEntry = new cUdevListEntry(l);
