@@ -1,0 +1,69 @@
+--- a/femon.c
++++ b/femon.c
+@@ -139,7 +139,7 @@
+         FemonService_v1_0 *data = (FemonService_v1_0*)Data;
+         if (!cDevice::ActualDevice())
+            return false;
+-        cDvbDevice *dev = dynamic_cast<cDvbDevice*>(cDevice::ActualDevice());
++        cDvbDevice *dev = getDvbDevice(cDevice::ActualDevice());
+         data->fe_name = getFrontendName(dev);
+         data->fe_status = getFrontendStatus(dev);
+         data->fe_snr = getSNR(dev);
+@@ -198,9 +198,9 @@
+ 
+ cString cPluginFemon::SVDRPCommand(const char *Command, const char *Option, int &ReplyCode)
+ {
+-  cDvbDevice *dev = dynamic_cast<cDvbDevice*>(cDevice::ActualDevice());
++  cDvbDevice *dev = getDvbDevice(cDevice::ActualDevice());
+   if (*Option && isnumber(Option)) {
+-     cDvbDevice *dev2 = dynamic_cast<cDvbDevice*>(cDevice::GetDevice(int(strtol(Option, NULL, 10))));
++     cDvbDevice *dev2 = getDvbDevice(cDevice::GetDevice(int(strtol(Option, NULL, 10))));
+      if (dev2)
+         dev = dev2;
+      }
+--- a/femonosd.c
++++ b/femonosd.c
+@@ -674,7 +674,7 @@
+      }
+ 
+   if (m_DeviceSource == DEVICESOURCE_DVBAPI) {
+-     cDvbDevice *dev = dynamic_cast<cDvbDevice*>(cDevice::ActualDevice());
++     cDvbDevice *dev = getDvbDevice(cDevice::ActualDevice());
+      m_Frontend = dev ? open(*cString::sprintf(FRONTEND_DEVICE, dev->Adapter(), dev->Frontend()), O_RDONLY | O_NONBLOCK) : -1;
+      if (m_Frontend >= 0) {
+         if (ioctl(m_Frontend, FE_GET_INFO, &m_FrontendInfo) < 0) {
+@@ -748,7 +748,7 @@
+      }
+ 
+   if (m_DeviceSource == DEVICESOURCE_DVBAPI) {
+-     cDvbDevice *dev = dynamic_cast<cDvbDevice*>(cDevice::ActualDevice());
++     cDvbDevice *dev = getDvbDevice(cDevice::ActualDevice());
+      m_Frontend = dev ? open(*cString::sprintf(FRONTEND_DEVICE, dev->Adapter(), dev->Frontend()), O_RDONLY | O_NONBLOCK) : -1;
+      if (m_Frontend >= 0) {
+         if (ioctl(m_Frontend, FE_GET_INFO, &m_FrontendInfo) < 0) {
+--- a/femontools.c
++++ b/femontools.c
+@@ -589,3 +589,14 @@
+ 
+   SkipBits(n);
+ }
++
++
++cDvbDevice*  getDvbDevice(cDevice* device)
++{
++  cDvbDevice *dev = dynamic_cast<cDvbDevice*>(device);
++#ifdef __DYNAMIC_DEVICE_PROBE
++  if ((dev == NULL) && (device != NULL) && device->HasSubDevice())
++     dev = dynamic_cast<cDvbDevice*>(device->SubDevice());
++#endif
++  return dev;
++}
+--- a/femontools.h
++++ b/femontools.h
+@@ -83,4 +83,6 @@
+   void           SkipSeGolomb() { SkipGolomb(); }
+   };
+ 
++cDvbDevice*  getDvbDevice(cDevice* device);
++
+ #endif // __FEMONTOOLS_H
