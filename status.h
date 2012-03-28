@@ -14,7 +14,7 @@ private:
 
   cDynamiteStatus(int StartupChannel);
 
-  virtual void ChannelSwitch(const cDevice *Device, int ChannelNumber);
+  virtual void ChannelSwitch(const cDevice *Device, int ChannelNumber, bool LiveView);
 
 public:
   static void Init(void);

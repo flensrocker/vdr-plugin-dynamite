@@ -256,3 +256,7 @@ VDR Plugin 'dynamite' Revision History
 2012-03-28: Version 0.0.9d
 
 - adjust to vdr 1.7.27
+
+2012-03-29: Version 0.0.9e
+
+- re-new the device bonding if a device is attached

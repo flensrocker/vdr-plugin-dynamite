@@ -13,7 +13,7 @@ cDynamiteStatus::cDynamiteStatus(int StartupChannel)
   isyslog("dynamite: startup channel is %d", startupChannel);
 }
 
-void cDynamiteStatus::ChannelSwitch(const cDevice *Device, int ChannelNumber)
+void cDynamiteStatus::ChannelSwitch(const cDevice *Device, int ChannelNumber, bool LiveView)
 {
   if ((ChannelNumber == 0) || startupChannelSet || (startupChannel < 0) || (switchCount > 1))
      return;

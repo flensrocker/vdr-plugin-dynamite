@@ -310,6 +310,7 @@ attach:
   isyslog("dynamite: attached device %s to dynamic device slot %d", DevPath, freeIndex + 1);
   dynamicdevice[freeIndex]->ReadUdevProperties();
   cPluginManager::CallAllServices("dynamite-event-DeviceAttached-v0.1", (void*)DevPath);
+  cDvbDevice::BondDevices(Setup.DeviceBondings); // "re-bond"
   if (enableOsdMessages) {
      cString osdMsg = cString::sprintf(tr("attached %s"), DevPath);
      Skins.QueueMessage(mtInfo, *osdMsg);
