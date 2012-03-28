@@ -252,3 +252,7 @@ VDR Plugin 'dynamite' Revision History
 2012-03-08: Version 0.0.9c
 
 - on "force detach" queue command, don't delete directly on the call
+
+2012-03-28: Version 0.0.9d
+
+- adjust to vdr 1.7.27
