@@ -97,6 +97,7 @@ protected:
   virtual bool Ready(void);
   virtual void MakePrimaryDevice(bool On);
 public:
+  virtual cString DeviceName(void) const;
   virtual bool HasDecoder(void) const;
   virtual bool AvoidRecording(void) const;
   virtual cSpuDecoder *GetSpuDecoder(void);

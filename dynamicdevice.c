@@ -736,6 +736,13 @@ bool cDynamicDevice::HasDecoder(void) const
   return cDevice::HasDecoder();
 }
 
+cString cDynamicDevice::DeviceName(void) const
+{
+  if (subDevice)
+     return subDevice->DeviceName();
+  return cString::sprintf("dynamite-cDynamicDevice-%d", index);
+}
+
 bool cDynamicDevice::AvoidRecording(void) const
 {
   if (subDevice)
