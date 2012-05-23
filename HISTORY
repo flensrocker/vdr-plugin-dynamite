@@ -260,3 +260,7 @@ VDR Plugin 'dynamite' Revision History
 2012-03-29: Version 0.0.9e
 
 - re-new the device bonding if a device is attached
+
+2012-05-23: Version 0.0.9f
+
+- add udev attribute "dynamite_attach_delay_preopen"

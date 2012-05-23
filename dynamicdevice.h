@@ -53,7 +53,7 @@ public:
          ///< Returns the total number of dynamic devices.
   static cDynamicDevice *GetDynamicDevice(int Index);
   static bool ProcessQueuedCommands(void);
-  static int GetUdevAttributesForAttach(const char *DevPath, int &CardIndex, int &AttachDelay);
+  static int GetUdevAttributesForAttach(const char *DevPath, int &CardIndex, int &AttachDelay, bool &AttachDelayPreopen);
   static void DetachAllDevices(bool Force);
   static cString ListAllDevices(int &ReplyCode); // for SVDRP command LSTD
   static cString AttachDevicePattern(const char *Pattern);

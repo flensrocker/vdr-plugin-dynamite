@@ -118,10 +118,11 @@ bool cDynamicDevice::ProcessQueuedCommands(void)
   return true;
 }
 
-int cDynamicDevice::GetUdevAttributesForAttach(const char *DevPath, int &CardIndex, int &AttachDelay)
+int cDynamicDevice::GetUdevAttributesForAttach(const char *DevPath, int &CardIndex, int &AttachDelay, bool &AttachDelayPreopen)
 {
   CardIndex = -1;
   AttachDelay = 0;
+  AttachDelayPreopen = false;
   if (DevPath == NULL)
      return -1;
   cUdevDevice *dev = cUdev::GetDeviceFromDevName(DevPath);
@@ -141,6 +142,12 @@ int cDynamicDevice::GetUdevAttributesForAttach(const char *DevPath, int &CardInd
      intVal = 0;
      if (val && (sscanf(val, "%d", &intVal) == 1) && (intVal > 0))
         AttachDelay = intVal;
+     }
+  val = dev->GetPropertyValue("dynamite_attach_delay_preopen");
+  if (val) {
+     isyslog("dynamite: udev attach_delay_preopen is %s", val);
+     if ((strcmp(val, "1") == 0) || (strcasecmp(val, "y") == 0) || (strcasecmp(val, "yes") == 0))
+        AttachDelayPreopen = true;
      }
   delete dev;
   return 0;
@@ -214,7 +221,8 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
   int frontend = -1;
   int wishIndex = -1;
   int attachDelay = 0;
-  GetUdevAttributesForAttach(DevPath, wishIndex, attachDelay);
+  bool attachDelayPreopen = false;
+  GetUdevAttributesForAttach(DevPath, wishIndex, attachDelay, attachDelayPreopen);
   if (wishIndex >= 0)
      isyslog("dynamite: %s wants card index %d", DevPath, wishIndex);
   else if (sscanf(DevPath, "/dev/dvb/adapter%d/frontend%d", &adapter, &frontend) == 2) {
@@ -235,6 +243,15 @@ eDynamicDeviceReturnCode cDynamicDevice::AttachDevice(const char *DevPath, int D
      }
 
   if ((attachDelay > 0) && (Delayed > 1)) {
+     if (attachDelayPreopen) {
+        // trigger firmware load
+        isyslog("dynamite: open %s before attach", DevPath);
+        int fd = open(DevPath, O_RDWR | O_NONBLOCK);
+        if (fd > 0) {
+           close(fd);
+           isyslog("dynamite: close %s", DevPath);
+           }
+        }
      commandRequeue.Add(new cDynamicDeviceProbe::cDynamicDeviceProbeItem(ddpcAttach, new cString(DevPath)));
      new cDelayedDeviceItems(DevPath, attachDelay);
      return ddrcAttachDelayed;
