@@ -1,0 +1,345 @@
+diff --git a/SCCIAdapter.cpp b/SCCIAdapter.cpp
+index f18b5c6..f141fa7 100644
+--- a/SCCIAdapter.cpp
++++ b/SCCIAdapter.cpp
+@@ -38,7 +38,7 @@
+ #define T_RCV          0x81
+ #define T_DATA_LAST    0xA0
+ 
+-SCCIAdapter::SCCIAdapter(cDevice *Device, int cardIndex, int cafd)
++SCCIAdapter::SCCIAdapter(cDevice *Device, int Adapter, int Frontend, int cardIndex, int cafd)
+ {
+   for (int i = 0; i < MAX_SOCKETS; i++)
+   {
+@@ -50,6 +50,11 @@ SCCIAdapter::SCCIAdapter(cDevice *Device, int cardIndex, int cafd)
+   device = Device;
+   capmt = new CAPMT;
+   fd_ca = cafd;
++// BEGIN vdr-plugin-dynamite
++  idle = false;
++  adapter = Adapter;
++  frontend = Frontend;
++// END vdr-plugin-dynamite
+   decsa = new DeCSA(cardIndex);
+   UDPSocket::bindx(this);
+ 
+@@ -254,6 +259,9 @@ SCCIAdapter::~SCCIAdapter()
+   if (capmt != 0)
+     delete capmt;
+   capmt = 0;
++// BEGIN vdr-plugin-dynamite
++  CloseCa();
++// END vdr-plugin-dynamite
+ }
+ 
+ bool SCCIAdapter::Reset(int Slot)
+@@ -396,3 +404,37 @@ bool SCCIAdapter::DeCSASetCaPid(ca_pid_t *ca_pid)
+   }
+   return decsa->SetCaPid(ca_pid);
+ }
++
++// BEGIN vdr-plugin-dynamite
++bool SCCIAdapter::OpenCa(void)
++{
++  if (fd_ca >= 0)
++     return true;
++  cMutexLock lock(&cafdMutex);
++  fd_ca = cDvbDevice::DvbOpen(DEV_DVB_CA, adapter, frontend, O_RDWR);
++  return (fd_ca >= 0);
++}
++
++void SCCIAdapter::CloseCa(void)
++{
++  if (fd_ca < 0)
++     return;
++  cMutexLock lock(&cafdMutex);
++  close(fd_ca);
++  fd_ca = -1;
++}
++
++bool SCCIAdapter::SetIdle(bool Idle, bool TestOnly)
++{
++  if ((adapter < 0) || (frontend < 0))
++     return false;
++  if (TestOnly || (idle == Idle))
++     return true;
++  if (Idle)
++     CloseCa();
++  else
++     OpenCa();
++  idle = Idle;
++  return true;
++}
++// END vdr-plugin-dynamite
+diff --git a/SCCIAdapter.h b/SCCIAdapter.h
+index 8f87417..bd661b6 100644
+--- a/SCCIAdapter.h
++++ b/SCCIAdapter.h
+@@ -66,7 +66,7 @@ private:
+   int addCaid(int offset, int limit, unsigned short caid);
+ 
+ public:
+-  SCCIAdapter(cDevice *Device, int CardIndex, int cafd);
++  SCCIAdapter(cDevice *Device, int Adapter, int Frontend, int CardIndex, int cafd);
+   ~SCCIAdapter();
+   int Adapter()
+   {
+@@ -85,6 +85,18 @@ public:
+   bool DeCSASetCaDescr(ca_descr_t *ca_descr);
+   bool DeCSASetCaPid(ca_pid_t *ca_pid);
+   void ProcessSIDRequest(int card_index, int sid, int ca_lm, const unsigned char *vdr_caPMT, int vdr_caPMTLen);
++
++// BEGIN vdr-plugin-dynamite
++private:
++  int adapter, frontend;
++  bool idle;
++
++  bool OpenCa(void);
++  void CloseCa(void);
++public:
++  virtual bool SetIdle(bool Idle, bool TestOnly);
++  virtual bool IsIdle(void) const { return idle; }
++// END vdr-plugin-dynamite
+ };
+ 
+ #endif // ___SCCIADAPTER_H
+diff --git a/device-tmpl.cpp b/device-tmpl.cpp
+index ff6ea51..80e554b 100644
+--- a/device-tmpl.cpp
++++ b/device-tmpl.cpp
+@@ -29,7 +29,7 @@ private:
+   cScDevicePlugin *devplugin;
+   cTimeMs lastDump;
+   SCCIAdapter *sCCIAdapter;
+-  int fd_dvr, fd_ca, fd_ca2;
++  int fd_dvr, fd_ca; //, fd_ca2; // fd_ca2 is not used, copy&paste relict?
+   bool softcsa;
+   char devId[8];
+   bool ScActive(void);
+@@ -48,6 +48,15 @@ public:
+   virtual bool HasCi(void);
+   void LateInit(void);
+   void EarlyShutdown(void);
++
++// BEGIN vdr-plugin-dynamite
++private:
++  bool lateInit;
++public:
++#ifdef __DYNAMIC_DEVICE_PROBE
++  virtual bool SetIdleDevice(bool Idle, bool TestOnly);
++#endif
++// END vdr-plugin-dynamite
+ };
+ 
+ SCDEVICE::SCDEVICE(cScDevicePlugin *DevPlugin, int Adapter, int Frontend, int cafd)
+@@ -57,28 +66,47 @@ SCDEVICE::SCDEVICE(cScDevicePlugin *DevPlugin, int Adapter, int Frontend, int ca
+  : DVBDEVICE(Adapter, Frontend)
+ #endif //OWN_DEVPARAMS
+ {
++// BEGIN vdr-plugin-dynamite
++  lateInit = false;
++// END vdr-plugin-dynamite
+   DEBUGLOG("%s: adapter=%d frontend=%d", __FUNCTION__, Adapter, Frontend);
+   tsBuffer = 0;
+   devplugin = DevPlugin;
+   softcsa = false;
+   fd_ca = cafd;
+-  fd_ca2 = dup(fd_ca);
++  //fd_ca2 = dup(fd_ca); // is not used, copy&paste relict?
+   fd_dvr = -1;
+   snprintf(devId, sizeof(devId), "%d/%d", Adapter, Frontend);
+-  sCCIAdapter = new SCCIAdapter(this, Adapter, cafd);
++// BEGIN vdr-plugin-dynamite
++#ifdef __DYNAMIC_DEVICE_PROBE
++  cDevice *cidev = parentDevice ? parentDevice : this;
++#else
++  cDevice *cidev = this;
++#endif
++  sCCIAdapter = new SCCIAdapter(cidev, Adapter, Frontend, Adapter, cafd);
+   DEBUGLOG("%s: done", __FUNCTION__);
++// BEGIN vdr-plugin-dynamite
++  cScDevices::AddScDevice(this);
++  if (cScDevices::AutoLateInit())
++     LateInit();
++// END vdr-plugin-dynamite
+ }
+ 
+ SCDEVICE::~SCDEVICE()
+ {
++// BEGIN vdr-plugin-dynamite
++  cScDevices::DelScDevice(this);
++// END vdr-plugin-dynamite
+   DEBUGLOG("%s", __FUNCTION__);
+   DetachAllReceivers();
+   Cancel(3);
+   EarlyShutdown();
+-  if (fd_ca >= 0)
+-    close(fd_ca);
+-  if (fd_ca2 >= 0)
+-    close(fd_ca2);
++  // fd_ca will be closed by SCCIAdapter
++  //if (fd_ca >= 0)
++  //  close(fd_ca);
++  // fd_ca2 is not used, copy&paste relict?
++  //if (fd_ca2 >= 0)
++  //  close(fd_ca2);
+ }
+ 
+ void SCDEVICE::EarlyShutdown(void)
+@@ -92,6 +120,9 @@ void SCDEVICE::EarlyShutdown(void)
+ 
+ void SCDEVICE::LateInit(void)
+ {
++  if (lateInit)
++     return;
++  lateInit = true;
+   DEBUGLOG("%s", __FUNCTION__);
+   int n = CardIndex();
+   if (DeviceNumber() != n)
+@@ -190,6 +221,27 @@ bool SCDEVICE::GetTSPacket(uchar *&Data)
+   return false;
+ }
+ 
++// BEGIN vdr-plugin-dynamite
++#ifdef __DYNAMIC_DEVICE_PROBE
++bool SCDEVICE::SetIdleDevice(bool Idle, bool TestOnly)
++{
++  if (TestOnly) {
++     if (sCCIAdapter)
++        return sCCIAdapter->SetIdle(Idle, true);
++     return DVBDEVICE::SetIdleDevice(Idle, true);
++     }
++  if (sCCIAdapter && !sCCIAdapter->SetIdle(Idle, false))
++     return false;
++  if (!DVBDEVICE::SetIdleDevice(Idle, false)) {
++     if (sCCIAdapter)
++        sCCIAdapter->SetIdle(!Idle, false);
++     return false;
++     }
++  return true;
++}
++#endif
++// END vdr-plugin-dynamite
++
+ #undef SCDEVICE
+ #undef DVBDEVICE
+ #undef OWN_DEVPARAMS
+diff --git a/device.cpp b/device.cpp
+index 8e61b60..e6e701b 100644
+--- a/device.cpp
++++ b/device.cpp
+@@ -61,6 +61,58 @@ bool cScDvbDevicePlugin::EarlyShutdown(cDevice *dev)
+ 
+ int cScDevices::budget = 0;
+ 
++// BEGIN vdr-plugin-dynamite
++// dynamite fills the vdr::cDevice::device array with vdr::plugin::dynamite::cDynamicDevice
++// we have to maintain our own list of sc-devices
++int cScDevices::numScDevices = 0;
++cDevice *cScDevices::scdevice[MAXDEVICES] = { NULL };
++bool cScDevices::autoLateInit = false;
++
++int cScDevices::NumScDevices(void)
++{
++  return numScDevices;
++}
++
++cDevice *cScDevices::GetScDevice(int CardIndex)
++{
++  for (int n = 0; n < numScDevices; n++) {
++      if (scdevice[n] && (scdevice[n]->CardIndex() == CardIndex))
++         return scdevice[n];
++      }
++  return NULL;
++}
++
++void cScDevices::AddScDevice(cDevice *Device)
++{
++  if (Device == NULL)
++     return;
++  int i = 0;
++  while ((i < numScDevices) && (i < MAXDEVICES) && (scdevice[i] != Device))
++        i++;
++  if (i < MAXDEVICES) {
++     scdevice[i] = Device;
++     if (i == numScDevices)
++        numScDevices++;
++     }
++  else
++     esyslog("too many sc-devices!");
++}
++
++void cScDevices::DelScDevice(cDevice *Device)
++{
++  if (Device == NULL)
++     return;
++  int i = 0;
++  while ((i < numScDevices) && (i < MAXDEVICES)) {
++        if (scdevice[i] == Device) {
++           scdevice[i] = NULL;
++           break;
++           }
++        i++;
++        }
++}
++// END vdr-plugin-dynamite
++
+ void cScDevices::DvbName(const char *Name, int a, int f, char *buffer, int len)
+ {
+   snprintf(buffer, len, "%s/%s%d/%s%d", DEV_DVB_BASE, DEV_DVB_ADAPTER, a, Name, f);
+@@ -95,20 +147,25 @@ bool cScDevices::Initialize(void)
+ 
+ void cScDevices::Startup(void)
+ {
+-  for (int n = cDevice::NumDevices(); --n >= 0;)
++// BEGIN vdr-plugin-dynamite
++  for(int n = NumScDevices(); --n >= 0;)
+   {
+-    cDevice *dev = cDevice::GetDevice(n);
++    cDevice *dev = GetScDevice(n);
+     for (cScDevicePlugin *dp = devplugins.First(); dp; dp = devplugins.Next(dp))
+       if (dp->LateInit(dev))
+         break;
+   }
++  autoLateInit = true;
++// END vdr-plugin-dynamite
+ }
+ 
+ void cScDevices::Shutdown(void)
+ {
+-  for (int n = cDevice::NumDevices(); --n >= 0;)
++// BEGIN vdr-plugin-dynamite
++  for(int n = NumScDevices(); --n >= 0;)
+   {
+-    cDevice *dev = cDevice::GetDevice(n);
++    cDevice *dev = GetScDevice(n);
++// END vdr-plugin-dynamite
+     for (cScDevicePlugin *dp = devplugins.First(); dp; dp = devplugins.Next(dp))
+       if (dp->EarlyShutdown(dev))
+         break;
+diff --git a/device.h b/device.h
+index 60c218f..c9a7bfe 100644
+--- a/device.h
++++ b/device.h
+@@ -49,6 +49,21 @@ public:
+   static bool ForceBudget(int n);
+   static void DvbName(const char *Name, int a, int f, char *buffer, int len);
+   static int DvbOpen(const char *Name, int a, int f, int Mode, bool ReportError = false);
++
++// BEGIN vdr-plugin-dynamite
++// dynamite fills the vdr::cDevice::device array with vdr::plugin::dynamite::cDynamicDevice
++// we have to maintain our own list of sc-devices
++private:
++  static int numScDevices;
++  static cDevice *scdevice[MAXDEVICES];
++  static bool autoLateInit;
++public:
++  static int NumScDevices(void);
++  static cDevice *GetScDevice(int CardIndex);
++  static void AddScDevice(cDevice *Device);
++  static void DelScDevice(cDevice *Device);
++  static bool AutoLateInit() { return autoLateInit; };
++// END vdr-plugin-dynamite
+ };
+ 
+ #endif // ___DEVICE_H
