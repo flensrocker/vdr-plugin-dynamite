@@ -97,6 +97,7 @@ protected:
   virtual bool Ready(void);
   virtual void MakePrimaryDevice(bool On);
 public:
+  virtual cString DeviceType(void) const;
   virtual cString DeviceName(void) const;
   virtual bool HasDecoder(void) const;
   virtual bool AvoidRecording(void) const;
@@ -109,13 +110,8 @@ public:
   virtual int SignalStrength(void) const;
   virtual int SignalQuality(void) const;
   virtual const cChannel *GetCurrentlyTunedTransponder(void) const;
-#if VDRVERSNUM < 10722
-  virtual bool IsTunedToTransponder(const cChannel *Channel);
-  virtual bool MaySwitchTransponder(void);
-#else
   virtual bool IsTunedToTransponder(const cChannel *Channel) const;
   virtual bool MaySwitchTransponder(const cChannel *Channel) const;
-#endif
 protected:
   virtual bool SetChannelDevice(const cChannel *Channel, bool LiveView);
 public:
@@ -125,8 +121,10 @@ protected:
   virtual bool SetPid(cPidHandle *Handle, int Type, bool On);
 public:
   virtual int OpenFilter(u_short Pid, u_char Tid, u_char Mask);
+  virtual int ReadFilter(int Handle, void *Buffer, size_t Length);
   virtual void CloseFilter(int Handle);
   virtual bool HasCi(void);
+  virtual bool HasInternalCam(void);
   virtual uchar *GrabImage(int &Size, bool Jpeg = true, int Quality = -1, int SizeX = -1, int SizeY = -1);
   virtual void SetVideoDisplayFormat(eVideoDisplayFormat VideoDisplayFormat);
   virtual void SetVideoFormat(bool VideoFormat16_9);
@@ -167,21 +165,10 @@ protected:
   virtual bool OpenDvr(void);
   virtual void CloseDvr(void);
   virtual bool GetTSPacket(uchar *&Data);
-  
-#ifdef INTERNAL_CAM_DEVICES_PATCH
-  virtual bool HasInternalCam(void);
-#endif
 
 #ifdef YAVDR_PATCHES
 //opt-44_rotor
   virtual bool SendDiseqcCmd(dvb_diseqc_master_cmd cmd);
-#endif
-
-#ifdef LNB_SHARING_VERSION
-  virtual void SetLnbNrFromSetup(void);
-  virtual int LnbNr(void) const;
-  virtual bool IsShareLnb(const cDevice *Device);
-  virtual bool IsLnbConflict(const cChannel *Channel);
 #endif
   };
 

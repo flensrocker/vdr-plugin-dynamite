@@ -264,3 +264,9 @@ VDR Plugin 'dynamite' Revision History
 2012-05-23: Version 0.0.9f
 
 - add udev attribute "dynamite_attach_delay_preopen"
+
+2012-10-04: Version 0.1.0
+
+- adjust to vdr 1.7.31
+- drop support for older developer versions
+- remove LNB_SHARING code

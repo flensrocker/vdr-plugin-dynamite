@@ -754,6 +754,13 @@ bool cDynamicDevice::HasDecoder(void) const
   return cDevice::HasDecoder();
 }
 
+cString cDynamicDevice::DeviceType(void) const
+{
+  if (subDevice)
+     return subDevice->DeviceType();
+  return "dyn";
+}
+
 cString cDynamicDevice::DeviceName(void) const
 {
   if (subDevice)
@@ -780,6 +787,13 @@ bool cDynamicDevice::HasCi(void)
   if (subDevice)
      return subDevice->HasCi();
   return cDevice::HasCi();
+}
+
+bool cDynamicDevice::HasInternalCam(void)
+{
+  if (subDevice)
+     return subDevice->HasInternalCam();
+  return cDevice::HasInternalCam();
 }
 
 uchar *cDynamicDevice::GrabImage(int &Size, bool Jpeg, int Quality, int SizeX, int SizeY)
@@ -836,6 +850,13 @@ int cDynamicDevice::OpenFilter(u_short Pid, u_char Tid, u_char Mask)
   if (subDevice)
      return subDevice->OpenFilter(Pid, Tid, Mask);
   return cDevice::OpenFilter(Pid, Tid, Mask);
+}
+
+int cDynamicDevice::ReadFilter(int Handle, void *Buffer, size_t Length)
+{
+  if (subDevice)
+     return subDevice->ReadFilter(Handle, Buffer, Length);
+  return cDevice::ReadFilter(Handle, Buffer, Length);
 }
 
 void cDynamicDevice::CloseFilter(int Handle)
@@ -909,33 +930,19 @@ const cChannel *cDynamicDevice::GetCurrentlyTunedTransponder(void) const
   return cDevice::GetCurrentlyTunedTransponder();
 }
 
-
-#if VDRVERSNUM < 10722
-bool cDynamicDevice::IsTunedToTransponder(const cChannel *Channel)
-#else
 bool cDynamicDevice::IsTunedToTransponder(const cChannel *Channel) const
-#endif
 {
   if (!IsIdle() && subDevice)
      return subDevice->IsTunedToTransponder(Channel);
   return cDevice::IsTunedToTransponder(Channel);
 }
 
-#if VDRVERSNUM < 10722
-bool cDynamicDevice::MaySwitchTransponder(void)
-{
-  if (subDevice)
-     return subDevice->MaySwitchTransponder();
-  return cDevice::MaySwitchTransponder();
-}
-#else
 bool cDynamicDevice::MaySwitchTransponder(const cChannel *Channel) const
 {
   if (subDevice)
      return subDevice->MaySwitchTransponder(Channel);
   return cDevice::MaySwitchTransponder(Channel);
 }
-#endif
 
 bool cDynamicDevice::SetChannelDevice(const cChannel *Channel, bool LiveView)
 {
@@ -1209,15 +1216,6 @@ bool cDynamicDevice::GetTSPacket(uchar *&Data)
   return cDevice::GetTSPacket(Data);
 }
 
-#ifdef INTERNAL_CAM_DEVICES_PATCH
-bool cDynamicDevice::HasInternalCam(void)
-{
-  if (subDevice)
-     return subDevice->HasInternalCam();
-  return cDevice::HasInternalCam();
-}
-#endif
-
 #ifdef YAVDR_PATCHES
 //opt-44_rotor.dpatch 
 bool cDynamicDevice::SendDiseqcCmd(dvb_diseqc_master_cmd cmd)
@@ -1225,35 +1223,5 @@ bool cDynamicDevice::SendDiseqcCmd(dvb_diseqc_master_cmd cmd)
   if (subDevice)
      return subDevice->SendDiseqcCmd(cmd);
   return cDevice::SendDiseqcCmd(cmd);
-}
-#endif
-
-#ifdef LNB_SHARING_VERSION
-void cDynamicDevice::SetLnbNrFromSetup(void)
-{
-  if (subDevice)
-     return subDevice->SetLnbNrFromSetup();
-  cDevice::SetLnbNrFromSetup();
-}
-
-int cDynamicDevice::LnbNr(void) const
-{
-  if (subDevice)
-     return subDevice->LnbNr();
-  return cDevice::LnbNr();
-}
-
-bool cDynamicDevice::IsShareLnb(const cDevice *Device)
-{
-  if (subDevice)
-     return subDevice->IsShareLnb(Device);
-  return cDevice::IsShareLnb(Device);
-}
-
-bool cDynamicDevice::IsLnbConflict(const cChannel *Channel)
-{
-  if (subDevice)
-     return subDevice->IsLnbConflict(Channel);
-  return cDevice::IsLnbConflict(Channel);
 }
 #endif
