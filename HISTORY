@@ -270,3 +270,7 @@ VDR Plugin 'dynamite' Revision History
 - adjust to vdr 1.7.31
 - drop support for older developer versions
 - remove LNB_SHARING code
+
+2012-12-08: Version 0.1.1
+
+- adjust to vdr 1.7.33

@@ -150,6 +150,8 @@ protected:
 public:
   virtual int64_t GetSTC(void);
   virtual bool IsPlayingVideo(void) const;
+  virtual cRect CanScaleVideo(const cRect &Rect, int Alignment = taCenter);
+  virtual void ScaleVideo(const cRect &Rect = cRect::Null);
   virtual bool HasIBPTrickSpeed(void);
   virtual void TrickSpeed(int Speed);
   virtual void Clear(void);

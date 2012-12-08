@@ -1035,6 +1035,20 @@ bool cDynamicDevice::IsPlayingVideo(void) const
   return cDevice::IsPlayingVideo();
 }
 
+cRect cDynamicDevice::CanScaleVideo(const cRect &Rect, int Alignment)
+{
+  if (subDevice)
+     return subDevice->CanScaleVideo(Rect, Alignment);
+  return cDevice::CanScaleVideo(Rect, Alignment);
+}
+
+void cDynamicDevice::ScaleVideo(const cRect &Rect)
+{
+  if (subDevice)
+     return subDevice->ScaleVideo(Rect);
+  return cDevice::ScaleVideo(Rect);
+}
+
 bool cDynamicDevice::HasIBPTrickSpeed(void)
 {
   if (subDevice)
