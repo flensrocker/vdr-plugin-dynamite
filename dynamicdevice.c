@@ -951,14 +951,14 @@ bool cDynamicDevice::SetChannelDevice(const cChannel *Channel, bool LiveView)
   return cDevice::SetChannelDevice(Channel, LiveView);
 }
 
-bool cDynamicDevice::HasLock(int TimeoutMs)
+bool cDynamicDevice::HasLock(int TimeoutMs) const
 {
   if (subDevice)
      return subDevice->HasLock(TimeoutMs);
   return cDevice::HasLock(TimeoutMs);
 }
 
-bool cDynamicDevice::HasProgramme(void)
+bool cDynamicDevice::HasProgramme(void) const
 {
   if (subDevice)
      return subDevice->HasProgramme();
@@ -1228,6 +1228,13 @@ bool cDynamicDevice::GetTSPacket(uchar *&Data)
      return r;
      }
   return cDevice::GetTSPacket(Data);
+}
+
+void cDynamicDevice::DetachAllReceivers(void)
+{
+  if (subDevice)
+     return subDevice->DetachAllReceivers();
+  cDevice::DetachAllReceivers();
 }
 
 #ifdef YAVDR_PATCHES

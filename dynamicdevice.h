@@ -105,7 +105,7 @@ public:
   virtual bool ProvidesSource(int Source) const;
   virtual bool ProvidesTransponder(const cChannel *Channel) const;
   virtual bool ProvidesTransponderExclusively(const cChannel *Channel) const;
-  virtual bool ProvidesChannel(const cChannel *Channel, int Priority = -1, bool *NeedsDetachReceivers = NULL) const;
+  virtual bool ProvidesChannel(const cChannel *Channel, int Priority = IDLEPRIORITY, bool *NeedsDetachReceivers = NULL) const;
   virtual int NumProvidedSystems(void) const;
   virtual int SignalStrength(void) const;
   virtual int SignalQuality(void) const;
@@ -115,8 +115,8 @@ public:
 protected:
   virtual bool SetChannelDevice(const cChannel *Channel, bool LiveView);
 public:
-  virtual bool HasLock(int TimeoutMs = 0);
-  virtual bool HasProgramme(void);
+  virtual bool HasLock(int TimeoutMs = 0) const;
+  virtual bool HasProgramme(void) const;
 protected:
   virtual bool SetPid(cPidHandle *Handle, int Type, bool On);
 public:
@@ -167,6 +167,8 @@ protected:
   virtual bool OpenDvr(void);
   virtual void CloseDvr(void);
   virtual bool GetTSPacket(uchar *&Data);
+public:
+  virtual void DetachAllReceivers(void);
 
 #ifdef YAVDR_PATCHES
 //opt-44_rotor
