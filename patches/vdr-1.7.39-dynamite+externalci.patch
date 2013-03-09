@@ -38,7 +38,7 @@ index 74e0270..818ea29 100644
  
  class cTPDU;
 diff --git a/device.c b/device.c
-index ca897b0..69f941e 100644
+index ca897b0..3d87375 100644
 --- a/device.c
 +++ b/device.c
 @@ -69,12 +69,22 @@ int cDevice::currentChannel = 1;
@@ -291,16 +291,7 @@ index ca897b0..69f941e 100644
    if (Pid) {
       cMutexLock MutexLock(&mutexReceiver);
       for (int i = 0; i < MAXRECEIVERS; i++) {
-@@ -1713,6 +1794,8 @@ void cDevice::DetachAll(int Pid)
- 
- void cDevice::DetachAllReceivers(void)
- {
-+  if (parentDevice)
-+     return parentDevice->DetachAllReceivers();
-   cMutexLock MutexLock(&mutexReceiver);
-   for (int i = 0; i < MAXRECEIVERS; i++)
-       Detach(receiver[i]);
-@@ -1785,3 +1868,25 @@ uchar *cTSBuffer::Get(void)
+@@ -1785,3 +1866,25 @@ uchar *cTSBuffer::Get(void)
       }
    return NULL;
  }
