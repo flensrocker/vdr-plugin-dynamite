@@ -11,7 +11,7 @@
 #include "monitor.h"
 #include "status.h"
 
-static const char *VERSION        = "0.1.4";
+static const char *VERSION        = "0.1.5";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
@@ -272,8 +272,8 @@ bool cPluginDynamite::ProcessArgs(int argc, char *argv[])
 
 bool cPluginDynamite::Initialize(void)
 {
-  static const char *badPlugins[] = {"streamdev-client", "mcli", NULL};
-  static int         badPluginsFreeCount[] = {1, 8};
+  static const char *badPlugins[] = {"streamdev-client", "softhddevice", "xine", "xineliboutput", "mcli", NULL};
+  static int         badPluginsFreeCount[] = {1, 1, 1, 1, 8};
   int freeSlotsForKnownBadPlugins = 0;
   for (int i = 0; badPlugins[i]; i++) {
       if (cPluginManager::GetPlugin(badPlugins[i]) != NULL) {

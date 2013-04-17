@@ -274,3 +274,8 @@ VDR Plugin 'dynamite' Revision History
 2012-12-08: Version 0.1.1
 
 - adjust to vdr 1.7.33
+
+2013-04-17: Version 0.1.5
+
+- leave some free device slots for output plugins (softhddevice, xine and xineliboutput)
+
