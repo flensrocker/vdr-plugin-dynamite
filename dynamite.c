@@ -11,7 +11,7 @@
 #include "monitor.h"
 #include "status.h"
 
-static const char *VERSION        = "0.1.5";
+static const char *VERSION        = "0.2.0";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
 
