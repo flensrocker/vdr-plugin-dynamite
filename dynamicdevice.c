@@ -909,6 +909,15 @@ int cDynamicDevice::NumProvidedSystems(void) const
   return cDevice::NumProvidedSystems();
 }
 
+#if VDRVERSNUM > 20101
+const cPositioner *cDynamicDevice::Positioner(void) const
+{
+  if (subDevice)
+     return subDevice->Positioner();
+  return cDevice::Positioner();
+}
+#endif
+
 int cDynamicDevice::SignalStrength(void) const
 {
   if (subDevice)

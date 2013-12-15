@@ -107,6 +107,9 @@ public:
   virtual bool ProvidesTransponderExclusively(const cChannel *Channel) const;
   virtual bool ProvidesChannel(const cChannel *Channel, int Priority = IDLEPRIORITY, bool *NeedsDetachReceivers = NULL) const;
   virtual int NumProvidedSystems(void) const;
+#if VDRVERSNUM > 20101
+  virtual const cPositioner *Positioner(void) const;
+#endif
   virtual int SignalStrength(void) const;
   virtual int SignalQuality(void) const;
   virtual const cChannel *GetCurrentlyTunedTransponder(void) const;
