@@ -156,7 +156,11 @@ public:
   virtual cRect CanScaleVideo(const cRect &Rect, int Alignment = taCenter);
   virtual void ScaleVideo(const cRect &Rect = cRect::Null);
   virtual bool HasIBPTrickSpeed(void);
+#if APIVERSNUM > 20102
+  virtual void TrickSpeed(int Speed, bool Forward);
+#else
   virtual void TrickSpeed(int Speed);
+#endif
   virtual void Clear(void);
   virtual void Play(void);
   virtual void Freeze(void);

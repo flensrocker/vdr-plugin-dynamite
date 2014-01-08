@@ -11,9 +11,13 @@
 #include "monitor.h"
 #include "status.h"
 
-static const char *VERSION        = "0.2.0";
+static const char *VERSION        = "0.2.1";
 static const char *DESCRIPTION    = tr("attach/detach devices on the fly");
 static const char *MAINMENUENTRY  = NULL;
+
+#ifndef MAXDVBDEVICES
+#define MAXDVBDEVICES (MAXDEVICES>>1)
+#endif
 
 class cDynamiteDvbDeviceProbe : public cDvbDeviceProbe {
 private:
@@ -113,7 +117,6 @@ cPluginDynamite::~cPluginDynamite()
 {
   cDynamiteStatus::DeInit();
   cUdevMonitor::ShutdownAllMonitors();
-  cUdev::Free();
   if (cDynamicDevice::idleHook != NULL) {
      delete cDynamicDevice::idleHook;
      cDynamicDevice::idleHook = NULL;

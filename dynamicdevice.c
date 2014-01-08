@@ -1065,12 +1065,21 @@ bool cDynamicDevice::HasIBPTrickSpeed(void)
   return cDevice::HasIBPTrickSpeed();
 }
 
+#if APIVERSNUM > 20102
+void cDynamicDevice::TrickSpeed(int Speed, bool Forward)
+{
+  if (subDevice)
+     return subDevice->TrickSpeed(Speed, Forward);
+  cDevice::TrickSpeed(Speed, Forward);
+}
+#else
 void cDynamicDevice::TrickSpeed(int Speed)
 {
   if (subDevice)
      return subDevice->TrickSpeed(Speed);
   cDevice::TrickSpeed(Speed);
 }
+#endif
 
 void cDynamicDevice::Clear(void)
 {

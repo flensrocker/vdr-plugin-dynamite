@@ -7,6 +7,8 @@
 
 #define MAXUDEVMONITORS 10
 
+using namespace dynamite;
+
 class cUdevFilter;
 
 class cUdevMonitor : public cThread {
@@ -39,7 +41,7 @@ class cUdevFilter : public cListObject {
 friend class cUdevMonitor;
 protected:
   const cUdevMonitor *monitor;
-  virtual void Process(cUdevDevice &Device) = 0;
+  virtual void Process(const cUdevDevice &Device) = 0;
 public:
   cUdevFilter(void);
   virtual ~cUdevFilter(void);
@@ -47,12 +49,12 @@ public:
 
 class cUdevLogFilter : public cUdevFilter {
 protected:
-  virtual void Process(cUdevDevice &Device);
+  virtual void Process(const cUdevDevice &Device);
   };
 
 class cUdevDvbFilter : public cUdevFilter {
 protected:
-  virtual void Process(cUdevDevice &Device);
+  virtual void Process(const cUdevDevice &Device);
   };
 
 class cUdevUsbRemoveFilter : public cUdevFilter {
@@ -70,7 +72,7 @@ private:
   cMutex mutexItems;
   cList<cItem>  items;
 protected:
-  virtual void Process(cUdevDevice &Device);
+  virtual void Process(const cUdevDevice &Device);
 public:
   static void AddItem(const char *item, const char *devpath);
   static void RemoveItem(const char *item, const char *devpath);
@@ -84,7 +86,7 @@ protected:
   static cList<cUdevPatternFilter> filters;
 
   virtual ~cUdevPatternFilter(void);
-  virtual void Process(cUdevDevice &Device);
+  virtual void Process(const cUdevDevice &Device);
 private:
   cUdevPatternFilter(const char *Pattern);
   cString pattern;

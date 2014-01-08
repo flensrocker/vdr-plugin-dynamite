@@ -86,6 +86,7 @@ cUdevMonitor::~cUdevMonitor(void)
   if (monitor)
      udev_monitor_unref(monitor);
   monitor = NULL;
+  cUdev::Free();
 }
 
 #define MONITOR_POLL_INTERVAL_MS 500
@@ -148,8 +149,8 @@ bool cUdevMonitor::DelFilter(cUdevFilter *Filter)
   if (Filter->monitor != this)
      return false;
   cMutexLock lock(&filtersMutex);
-  filters.Del(Filter);
   Filter->monitor = NULL;
+  filters.Del(Filter);
   if (filters.Count() == 0)
      Cancel(3);
   return true;
@@ -168,7 +169,7 @@ cUdevFilter::~cUdevFilter(void)
 
 // --- cUdevLogFilter --------------------------------------------------------
 
-static void InternLogProcess(int Level, cUdevDevice &Device)
+static void InternLogProcess(int Level, const cUdevDevice &Device)
 {
   char *indent = new char[Level + 2];
   indent[0] = '+';
@@ -198,14 +199,14 @@ static void InternLogProcess(int Level, cUdevDevice &Device)
      }
 }
 
-void cUdevLogFilter::Process(cUdevDevice &Device)
+void cUdevLogFilter::Process(const cUdevDevice &Device)
 {
   InternLogProcess(0, Device);
 }
 
 // --- cUdevDvbFilter --------------------------------------------------------
 
-void cUdevDvbFilter::Process(cUdevDevice &Device)
+void cUdevDvbFilter::Process(const cUdevDevice &Device)
 {
   const char *action = Device.GetAction();
   if (action && (strcmp(action, "add") == 0)) {
@@ -236,7 +237,7 @@ cUdevUsbRemoveFilter::cItem::~cItem(void)
 cMutex cUdevUsbRemoveFilter::mutexFilter;
 cUdevUsbRemoveFilter *cUdevUsbRemoveFilter::filter = NULL;
 
-void cUdevUsbRemoveFilter::Process(cUdevDevice &Device)
+void cUdevUsbRemoveFilter::Process(const cUdevDevice &Device)
 {
   const char *action = Device.GetAction();
   const char *syspath = Device.GetSyspath();
@@ -324,7 +325,7 @@ cUdevPatternFilter::~cUdevPatternFilter(void)
   filters.Del(this, false);
 }
 
-void cUdevPatternFilter::Process(cUdevDevice &Device)
+void cUdevPatternFilter::Process(const cUdevDevice &Device)
 {
   const char *action = Device.GetAction();
   if (action && (strcmp(action, "add") == 0)) {
