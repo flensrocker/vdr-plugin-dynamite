@@ -817,12 +817,14 @@ void cDynamicDevice::SetVideoFormat(bool VideoFormat16_9)
   cDevice::SetVideoFormat(VideoFormat16_9);
 }
 
+#if VDRVERSNUM < 20300 || defined(DEPRECATED_VIDEOSYSTEM)
 eVideoSystem cDynamicDevice::GetVideoSystem(void)
 {
   if (subDevice)
      return subDevice->GetVideoSystem();
   return cDevice::GetVideoSystem();
 }
+#endif
 
 void cDynamicDevice::GetVideoSize(int &Width, int &Height, double &VideoAspect)
 {

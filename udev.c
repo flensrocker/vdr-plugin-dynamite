@@ -79,14 +79,14 @@ dynamite::cUdevListEntry *dynamite::cUdevDevice::GetDevlinksList(void) const
 const char  *dynamite::cUdevDevice::GetDevnode(void) const
 {
   if (device == NULL)
-     return false;
+     return NULL;
   return udev_device_get_devnode(device);
 }
 
 const char  *dynamite::cUdevDevice::GetDevpath(void) const
 {
   if (device == NULL)
-     return false;
+     return NULL;
   return udev_device_get_devpath(device);
 }
 
@@ -103,28 +103,28 @@ dynamite::cUdevDevice *dynamite::cUdevDevice::GetParent(void) const
 const char *dynamite::cUdevDevice::GetPropertyValue(const char *Key) const
 {
   if (device == NULL)
-     return false;
+     return NULL;
   return udev_device_get_property_value(device, Key);
 }
 
 const char *dynamite::cUdevDevice::GetSubsystem(void) const
 {
   if (device == NULL)
-     return false;
+     return NULL;
   return udev_device_get_subsystem(device);
 }
 
 const char *dynamite::cUdevDevice::GetSysname(void) const
 {
   if (device == NULL)
-     return false;
+     return NULL;
   return udev_device_get_sysname(device);
 }
 
 const char *dynamite::cUdevDevice::GetSyspath(void) const
 {
   if (device == NULL)
-     return false;
+     return NULL;
   return udev_device_get_syspath(device);
 }
 

@@ -131,7 +131,9 @@ public:
   virtual uchar *GrabImage(int &Size, bool Jpeg = true, int Quality = -1, int SizeX = -1, int SizeY = -1);
   virtual void SetVideoDisplayFormat(eVideoDisplayFormat VideoDisplayFormat);
   virtual void SetVideoFormat(bool VideoFormat16_9);
+#if VDRVERSNUM < 20300 || defined(DEPRECATED_VIDEOSYSTEM)
   virtual eVideoSystem GetVideoSystem(void);
+#endif
   virtual void GetVideoSize(int &Width, int &Height, double &VideoAspect);
   virtual void GetOsdSize(int &Width, int &Height, double &PixelAspect);
 protected:

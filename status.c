@@ -44,13 +44,25 @@ void cDynamiteStatus::Init(void)
      if (isnumber(cid)) // for compatibility with old setup.conf files
         startupChannel = atoi(cid);
      else {
-        if (cChannel *Channel = Channels.GetByChannelID(tChannelID::FromString(cid))) {
+#if VDRVERSNUM > 20300
+        LOCK_CHANNELS_READ;
+        const cChannels *vdrchannels = Channels;
+#else
+        cChannels *vdrchannels = &Channels;
+#endif
+        if (const cChannel *Channel = vdrchannels->GetByChannelID(tChannelID::FromString(cid))) {
            status = new cDynamiteStatus(Channel->Number());
            return;
            }
         }
      }
-  if (cChannel *Channel = Channels.GetByNumber(startupChannel))
+#if VDRVERSNUM > 20300
+  LOCK_CHANNELS_READ;
+  const cChannels *vdrchannels = Channels;
+#else
+  cChannels *vdrchannels = &Channels;
+#endif
+  if (const cChannel *Channel = vdrchannels->GetByNumber(startupChannel))
      status = new cDynamiteStatus(Channel->Number());
 }
 
@@ -71,6 +83,12 @@ void cDynamiteStatus::SetStartupChannel(void)
      return;
      }
   isyslog("dynamite: new device attached, retry switching to startup channel %d", status->startupChannel);
-  if (!Channels.SwitchTo(status->startupChannel))
+#if VDRVERSNUM > 20300
+  LOCK_CHANNELS_READ;
+  const cChannels *vdrchannels = Channels;
+#else
+  cChannels *vdrchannels = &Channels;
+#endif
+  if (!vdrchannels->SwitchTo(status->startupChannel))
      status->switchCount--;
 }
